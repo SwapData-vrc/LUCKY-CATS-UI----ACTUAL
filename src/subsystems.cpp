@@ -87,11 +87,8 @@ void spinclaw(int position) {
   g_started = pros::millis();
   g_holding = false;
 
-<<<<<<< HEAD
   claw_pivot.move_absolute(g_target, CLAW_SPEED);
-=======
-  claw_pivot.move_absolute(g_target, 127);
->>>>>>> 8c18042e1256f62be226c74dd476c8c4e0c32507
+  claw_pivot.move_absolute(g_target, 1000);
 }
 
 
