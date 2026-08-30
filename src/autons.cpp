@@ -94,6 +94,7 @@ void do_nothing() { chassis.arcade(0, 0); }
 // LemLib headings. Nothing here mirrors: export again from the other side.
 void my_route() {
   chassis.setPose(-72, 0, -90);
+  claw_spin.move(0);
 
  
  
@@ -104,11 +105,24 @@ void my_route() {
   
   chassis.moveToPoint(-76, 0, 852, {}, false);
   pros::delay(600);
+
+  chassis.moveToPoint(-65, 0, 852, {.forwards = false}, false);
+    claw_pivot.move_absolute(-850, 127);
+
+  // 8 in
+  
+  chassis.moveToPoint(-76, 0, 852, {}, false);
+  pros::delay(600);
+
+
   // 33.5 in
   chassis.moveToPoint(-51.25, -20.50, 1776, {.forwards = false}, false);
+
   intake.move(127);
   claw_spin.move(127);
-  pros::delay(900);
+  pros::delay(1300);
+  intake.move(127);
+  claw_spin.move(127);
 
 
   chassis.moveToPoint(-20.25, -18.25, 1882, {}, false);
@@ -160,6 +174,21 @@ void example() {
 
   chassis.moveToPoint(-30, 0, 2000, {}, false);
   std::printf("example: done\n");
+}
+
+void red_toggle() {
+  chassis.setPose(-72, 0, -90);
+
+ 
+ 
+  chassis.moveToPoint(-65, 0, 852, {.forwards = false}, false);
+    claw_pivot.move_absolute(-850, 127);
+
+  // 8 in
+  
+  chassis.moveToPoint(-76, 0, 852, {}, false);
+  pros::delay(600);
+
 }
 
 } // namespace auton
