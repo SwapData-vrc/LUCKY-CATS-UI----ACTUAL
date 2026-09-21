@@ -57,7 +57,7 @@ lemlib::Chassis chassis(drivetrain, lateral_controller, angular_controller,
 
 pros::MotorGroup lift({-18, 2}, pros::MotorGearset::green);
 pros::Motor claw_pivot(-3, pros::MotorGearset::green);
-pros::Motor claw_spin(11, pros::MotorGearset::green);
+pros::Motor claw_spin(1, pros::MotorGearset::green);
 pros::Motor intake(9, pros::MotorGearset::blue);
 
 volatile bool chassis_ready = false;

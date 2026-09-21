@@ -191,4 +191,22 @@ void red_toggle() {
 
 }
 
+void toggle() {
+  chassis.moveToPoint(-65, 0, 852, {.forwards = false}, false);
+    claw_pivot.move_absolute(-850, 127);
+
+  // 8 in
+  
+  chassis.moveToPoint(-76, 0, 852, {}, false);
+  pros::delay(600);
+
+  chassis.moveToPoint(-65, 0, 852, {.forwards = false}, false);
+    claw_pivot.move_absolute(-850, 127);
+
+  // 8 in
+  
+  chassis.moveToPoint(-76, 0, 852, {}, false);
+  pros::delay(600);
+}
+
 } // namespace auton
