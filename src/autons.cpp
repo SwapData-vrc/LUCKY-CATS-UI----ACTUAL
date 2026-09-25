@@ -5,161 +5,286 @@
 #include <cmath>
 #include <cstdio>
 
-/* HOW TO WRITE A ROUTINE
-
-   Plain LemLib. Every motion below is a real call out of
-   include/lemlib/chassis/chassis.hpp, so lemlib.readthedocs.io and anything
-   another team posts applies here without translation.
-
-   The last argument of every motion is `async`. Pass false and the call blocks
-   until the motion finishes, so the routine reads straight down the page --
-   one line, one thing the robot does, in order:
-
-     chassis.moveToPoint(-24, 0, 1500, {}, false);   // drives, then returns
-     chassis.turnToHeading(90, 900, {}, false);      // turns, then returns
-     intake.move(127);                               // instant, no waiting
-
-   Leave that false off and the call returns immediately, so the next line runs
-   while the robot is still moving. Useful when you want the lift going up
-   during a drive; confusing everywhere else.
-
-   The middle {} is the params struct. Fill in only what you want to change:
-
-     chassis.moveToPoint(x, y, t, {.forwards = false}, false);    // reverse
-     chassis.moveToPoint(x, y, t, {.maxSpeed = 70}, false);       // slower
-     chassis.moveToPose(x, y, heading, t, {.lead = 0.4f}, false); // curve in
-
-   The number before the params is the timeout in milliseconds -- a safety net,
-   not a schedule. Give a motion roughly twice as long as it should need.
-
-   COORDINATES are inches from field centre. +Y is away from the driver
-   station, +X is to its right, heading 0 faces +Y and increases clockwise.
-   Nothing is mirrored for you, which is why red and blue are separate
-   functions.
-
-   Every routine sets its own start pose, because odometry has no idea where
-   you put the robot on the tile. */
-
 namespace auton {
-namespace {
-constexpr double PI = 3.14159265358979;
 
-// Backs into whatever is behind the robot, lifts to `height` (0 to 1 of full
-// travel), spits, and drops back to travel height. Ordinary C++ taking
-// ordinary arguments -- the way to share behaviour between routines.
-void score_backwards(double into_inches, double height) {
-  lemlib::Pose p = chassis.getPose();
-  double t = p.theta * PI / 180.0;
+// skills -- designed in Catpath.
+// red alliance. Absolute field coordinates, inches from centre,
+// LemLib headings. Nothing here mirrors: export again from the other side.
+/*
+void points(){
+chassis.setPose(0, 0, 0);
+intake.move(127);
+claw_spin.move(-127);
 
-  chassis.moveToPoint(p.x - std::sin(t) * into_inches, p.y - std::cos(t) * into_inches, 1500,
-                      {.forwards = false}, false);
 
-  lift.move_absolute(height * LIFT_TICKS, 100);
-  pros::delay(500);
 
-  intake.move(-127);
-  claw_spin.move(-127);
-  pros::delay(600);
-  intake.move(0);
-  claw_spin.move(0);
-
-  lift.move_absolute(LIFT_TRAVEL * LIFT_TICKS, 100);
-  pros::delay(400);
 }
-} // namespace
+*/
+void skills() {
+  chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(-127);
+  spinclaw(1);
+    chassis.moveToPoint(0, -2.3, 552, {.forwards = false, .maxSpeed = 70}, false);
+   chassis.turnToHeading(-90, 700, {.maxSpeed = 80}, false);
+    chassis.moveToPoint(10, -2.3, 852, {.forwards = false, .maxSpeed = 70}, false);
+    claw_spin.move(127);
+    pros::delay(1000);
+    spinclaw(2);
+    chassis.setPose(0, 0, 0);
+    chassis.turnToHeading(5, 100, {.maxSpeed = 80}, false);
+        chassis.setPose(0, 0, 0);
+        
+        intake.move(-127);
+         chassis.moveToPoint(0, 23, 968, { .maxSpeed = 70}, false);
+         spinclaw(0);
+        chassis.turnToHeading(180, 2000, {.maxSpeed = 80}, false);
+         chassis.moveToPoint(0, 60, 1572, {.forwards = false, .maxSpeed = 80}, false);
+         chassis.setPose(0, 0, 0);
+         intake.move(127);
+         claw_spin.move(-127);
+         chassis.moveToPoint(0, 0, 572, { .maxSpeed = 80}, false);
+         chassis.turnToHeading(-130, 800, {.maxSpeed = 80}, false);
+           chassis.moveToPoint(-30, -3, 3572, { .maxSpeed = 80}, false);
+           chassis.setPose(0, 0, 0);
+           chassis.moveToPoint(0,-0.5, 100, {.forwards = false, .maxSpeed = 80}, false);
+           pros::delay(500);
+            chassis.moveToPoint(0, -2.3, 552, {.forwards = false, .maxSpeed = 70}, false);
+   chassis.turnToHeading(-90, 700, {.maxSpeed = 80}, false);
+   spinclaw(1); 
+  lift.move_absolute(900, 127);
+  pros::delay(100);
+    chassis.moveToPoint(20, -2.3, 1852, {.forwards = false, .maxSpeed = 70}, false);
+    lift.move_absolute(200, 127);
+    pros::delay(100);
+    claw_spin.move(127);
+    pros::delay(10);
+    lift.move_absolute(900, 127);
+ pros::delay(100);
+/*
 
-// Holds still for the whole autonomous period. First in the selector list so a
-// robot nobody configured sits there instead of running whatever was picked
-// last.
-void do_nothing() { chassis.arcade(0, 0); }
+chassis.setPose(0,0,0);
+chassis.moveToPoint(0, 3, 1000, { .maxSpeed = 80}, false);
+chassis.turnToHeading(20, 700, {.maxSpeed = 80}, false);
+chassis.moveToPoint(-4, -6, 1000, {.forwards = false, .maxSpeed = 80}, false);
+chassis.turnToHeading(90, 700, {.maxSpeed = 80}, false);
+chassis.setPose(0, 0, 0);
 
-/* !! PLACEHOLDER STRATEGY. The two routines below drive to the toggle on their
-   own side and come back. The path is closed loop and will land where the
-   numbers say, but the numbers themselves are a guess -- nobody has decided
-   what these should do at a match yet. */
+pros::delay(1000000);
 
-// West toggle sits at (-68, 0). Red starts at (-52, 0) facing +X, so this
-// turns around, closes on it, and backs off to leave the driver room.
-// my_route -- designed in Catpath, 5 steps
-// red alliance. Absolute field coordinates, inches from centre,
-// LemLib headings. Nothing here mirrors: export again from the other side.
-// my_route -- designed in Catpath, 5 steps
-// red alliance. Absolute field coordinates, inches from centre,
-// LemLib headings. Nothing here mirrors: export again from the other side.
-// my_route -- designed in Catpath, 12 steps
-// red alliance. Absolute field coordinates, inches from centre,
-// LemLib headings. Nothing here mirrors: export again from the other side.
-// my_route -- designed in Catpath, 12 steps
-// red alliance. Absolute field coordinates, inches from centre,
-// LemLib headings. Nothing here mirrors: export again from the other side.
-void my_route() {
-  chassis.setPose(-72, 0, -90);
+
+*/
+
+
+
+
+
+chassis.setPose(0, 0, 0);
+           
+        intake.move(-127);
+         chassis.moveToPoint(0, 23, 968, { .maxSpeed = 70}, false);
+         spinclaw(0);
+         lift.move_absolute(-20, 127);
+        chassis.turnToHeading(180, 2000, {.maxSpeed = 80}, false);
+         chassis.moveToPoint(0, 60, 1572, {.forwards = false, .maxSpeed = 80}, false);
+         chassis.setPose(0, 0, 0);
+         intake.move(127);
+         claw_spin.move(-127);
+         chassis.moveToPoint(0, 0, 572, { .maxSpeed = 80}, false);
+         chassis.turnToHeading(-130, 800, {.maxSpeed = 80}, false);
+           chassis.moveToPoint(-30, -3, 3572, { .maxSpeed = 80}, false);
+           chassis.setPose(0, 0, 0);
+           chassis.moveToPoint(0,-0.5, 100, {.forwards = false, .maxSpeed = 80}, false);
+           pros::delay(500);
+            chassis.moveToPoint(0, -2.3, 552, {.forwards = false, .maxSpeed = 70}, false);
+   chassis.turnToHeading(-90, 700, {.maxSpeed = 80}, false);
+   spinclaw(1); 
+  lift.move_absolute(1500, 127);
+  pros::delay(100);
+    chassis.moveToPoint(20, -2.3, 1852, {.forwards = false, .maxSpeed = 70}, false);
+    lift.move_absolute(800, 127);
+    pros::delay(100);
+    claw_spin.move(127);
+    pros::delay(10);
+    lift.move_absolute(1500, 127);
+ pros::delay(100);
+
+
+
+
 
  
+chassis.setPose(0, 0, 0);
+           
+        intake.move(-127);
+         chassis.moveToPoint(0, 23, 968, { .maxSpeed = 70}, false);
+         spinclaw(0);
+         lift.move_absolute(-20, 127);
+        chassis.turnToHeading(180, 2000, {.maxSpeed = 80}, false);
+         chassis.moveToPoint(0, 60, 1572, {.forwards = false, .maxSpeed = 80}, false);
+         chassis.setPose(0, 0, 0);
+         intake.move(127);
+         claw_spin.move(-127);
+         chassis.moveToPoint(0, 0, 572, { .maxSpeed = 80}, false);
+         chassis.turnToHeading(-130, 800, {.maxSpeed = 80}, false);
+           chassis.moveToPoint(-30, -3, 3572, { .maxSpeed = 80}, false);
+           chassis.setPose(0, 0, 0);
+           chassis.moveToPoint(0,-0.5, 100, {.forwards = false, .maxSpeed = 80}, false);
+           pros::delay(500);
+            chassis.moveToPoint(0, -2.3, 552, {.forwards = false, .maxSpeed = 70}, false);
+   chassis.turnToHeading(-90, 700, {.maxSpeed = 80}, false);
+   spinclaw(1); 
+  lift.move_absolute(1700, 127);
+  pros::delay(100);
+    chassis.moveToPoint(20, -2.3, 1852, {.forwards = false, .maxSpeed = 70}, false);
+    lift.move_absolute(1000, 127);
+    pros::delay(100);
+    claw_spin.move(127);
+    pros::delay(10);
+    lift.move_absolute(1700, 127);
+ pros::delay(100);
+
+
  
+chassis.setPose(0, 0, 0);
+           
+        intake.move(-127);
+         chassis.moveToPoint(0, 23, 968, { .maxSpeed = 70}, false);
+         spinclaw(0);
+         lift.move_absolute(-20, 127);
+        chassis.turnToHeading(180, 2000, {.maxSpeed = 80}, false);
+         chassis.moveToPoint(0, 60, 1572, {.forwards = false, .maxSpeed = 80}, false);
+         chassis.setPose(0, 0, 0);
+         intake.move(127);
+         claw_spin.move(-127);
+         chassis.moveToPoint(0, 0, 572, { .maxSpeed = 80}, false);
+         chassis.turnToHeading(-130, 800, {.maxSpeed = 80}, false);
+           chassis.moveToPoint(-30, -3, 3572, { .maxSpeed = 80}, false);
+           chassis.setPose(0, 0, 0);
+           chassis.moveToPoint(0,-0.5, 100, {.forwards = false, .maxSpeed = 80}, false);
+           pros::delay(500);
+            chassis.moveToPoint(0, -2.3, 552, {.forwards = false, .maxSpeed = 70}, false);
+   chassis.turnToHeading(-90, 700, {.maxSpeed = 80}, false);
+   spinclaw(1); 
+  lift.move_absolute(2100, 127);
+  pros::delay(100);
+    chassis.moveToPoint(20, -2.3, 1852, {.forwards = false, .maxSpeed = 70}, false);
+    lift.move_absolute(1500, 127);
+    pros::delay(100);
+    claw_spin.move(127);
+    pros::delay(10);
+    lift.move_absolute(2100, 127);
+ pros::delay(100);
+
+        
+        
+ 
+ /*        chassis.setPose(-72, 0, -90);
+  intake.move(127);
+  claw_spin.move(-127);
+
   chassis.moveToPoint(-65, 0, 852, {.forwards = false}, false);
-    claw_pivot.move_absolute(-850, 127);
 
   // 8 in
-  
+
   chassis.moveToPoint(-76, 0, 852, {}, false);
   pros::delay(600);
-  // 33.5 in
-  chassis.moveToPoint(-51.25, -20.50, 1776, {.forwards = false}, false);
+
+  chassis.moveToPoint(-65, 0, 852, {.forwards = false}, false);
+
+  // 8 in
+  spinclaw(1);
+  chassis.moveToPoint(-76, 0, 852, {}, false);
+  pros::delay(600);
+
+  //  33.5 in
+
+  chassis.moveToPoint(-51.25, -21.70, 1876, {.forwards = false}, false);
   intake.move(127);
   claw_spin.move(127);
   pros::delay(900);
+spinclaw(2);
+pros::delay(10);
+  lift.move_absolute(0, 100);
+  pros::delay(100);
+  claw_spin.move(-127);
 
+  chassis.setPose(0, 0, 0);
+  chassis.moveToPoint(0, 12, 1000, {.maxSpeed = 80}, false);
+  claw_spin.move(-127);
+  chassis.turnToHeading(-42.50, 850, {.maxSpeed = 80}, false);
+  pros::delay(100);
 
-  chassis.moveToPoint(-20.25, -18.25, 1882, {}, false);
-  chassis.turnToHeading(39, 1000, {}, false);
+  // Safe here only because the turn above is blocking. setPose while a motion
+  // is still running moves the goalposts under the controller that is chasing
+  // them.
+  chassis.setPose(0, 0, 0);
+  spinclaw(2);
 
-  lift.move_absolute(600, 100);
-    chassis.moveToPoint(-21.25, -19.25, 1882, {}, false);
+  chassis.moveToPoint(0, -34, 3104, {.forwards = false, .maxSpeed = 23.9}, false);
+  chassis.waitUntil(-26);
+  lift.move_absolute(0, 70);
+  claw_spin.move(-127);
 
+  chassis.turnToPoint(12, -1.1, 200, {.maxSpeed = 40}, false);
+ pros::delay(100);
+  spinclaw(0);
+  pros::delay(800);
+  spinclaw(1);
+  lift.move_absolute(1200, 127);
+  pros::delay(100);
+  chassis.setPose(0, 0, 0);
+  chassis.turnToHeading(101, 850, {.maxSpeed = 80}, false);
 
-
-
-}
-// East toggle sits at (68, 0). Blue starts at (-52, 0) facing +Y, so this is
-// not a mirror of red_toggle -- it is its own route, which is the whole reason
-// they are separate functions.
-void blue_toggle() {
-  std::printf("blue toggle: start\n");
-  chassis.setPose(-52, 0, 0);
-
-  chassis.turnToHeading(90, 1500, {}, false);
-  chassis.moveToPoint(0, 0, 3000, {}, false);
-  chassis.moveToPoint(62, 0, 3000, {}, false);
-
-  intake.move(127);
+  chassis.setPose(0, 0, 0);
+  chassis.moveToPoint(0, -24, 1000, {.forwards = false, .maxSpeed = 80}, false);
+  lift.move_absolute(100, 127);
+pros::delay(40);
   claw_spin.move(127);
+  pros::delay(800);
+  lift.move_absolute(1300, 127);
+  // end 2nd score
+  chassis.moveToPoint(0, 2, 1000, {.maxSpeed = 80}, false);
+  chassis.setPose(0, 0, 0);
+
+  chassis.turnToHeading(-40.8, 850, {.maxSpeed = 80}, false);
+  chassis.setPose(0, 0, 0);
+  lift.move_absolute(-90, 70);
+  pros::delay(100);
+
+  spinclaw(2);
+  lift.move_absolute(0, 70);
+  chassis.moveToPoint(0, -32.5, 1571, {.forwards = false, .maxSpeed = 40},
+                      false);
+
+  chassis.waitUntil(-27.5);
+  lift.move_absolute(0, 70);
+  claw_spin.move(-127);
+
+  chassis.turnToHeading(13, 700, {.maxSpeed = 127}, false);
+  spinclaw(0);
   pros::delay(600);
-  intake.move(0);
-  claw_spin.move(0);
+  spinclaw(1);
+  lift.move_absolute(8500, 127);
+  pros::delay(90);
+  chassis.setPose(0, 0, 0);
+  chassis.turnToHeading(129, 850, {.maxSpeed = 80}, false);
 
-  chassis.moveToPoint(48, 0, 1500, {.forwards = false}, false);
-  std::printf("blue toggle: done\n");
-}
+  chassis.setPose(0, 0, 0);
+  chassis.moveToPoint(0, -27, 1000, {.forwards = false, .maxSpeed = 50}, false);
+  lift.move_absolute(1300, 127);
 
-// A compiling example of the shape a routine takes. Delete it once there are
-// real ones.
-void example() {
-  std::printf("example: start\n");
-  chassis.setPose(-52, 0, 90);
-
-  lift.move_absolute(LIFT_TRAVEL * LIFT_TICKS, 100);
-  intake.move(127);
-
-  chassis.moveToPoint(-32, 0, 2000, {}, false);
-  pros::delay(300);
-  intake.move(0);
-
-  chassis.turnToHeading(90, 1000, {}, false);
-  score_backwards(12, 0.30);
-
-  chassis.moveToPoint(-30, 0, 2000, {}, false);
-  std::printf("example: done\n");
+  claw_spin.move(-127);
+  pros::delay(1000);
+  lift.move_absolute(400, 127);
+  pros::delay(100);
+  claw_spin.move(127);
+  lift.move_absolute(1500, 127);
+  pros::delay(100);
+  */
 }
 
 } // namespace auton
+
+
+//pros mu --debug flag

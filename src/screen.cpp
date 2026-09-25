@@ -49,10 +49,7 @@ struct Routine {
 };
 
 const Routine ROUTINES[] = {
-    {"Do nothing", auton::do_nothing},
-    {"My route", auton::my_route},
-    {"Blue toggle", auton::blue_toggle},
-    {"Example", auton::example},
+    {"Skills", auton::skills},
 };
 constexpr int COUNT = static_cast<int>(sizeof(ROUTINES) / sizeof(ROUTINES[0]));
 
@@ -437,6 +434,14 @@ void run_selected() {
 
   const uint32_t t0 = pros::millis();
   if (ROUTINES[g_selected].run != nullptr) ROUTINES[g_selected].run();
+
+  // Every LemLib motion defaults to async = true, so a routine whose last
+  // motion was written without the trailing `false` returns while the robot is
+  // still driving. The moment this function returns, g_running goes false and
+  // opcontrol takes the drive back -- arcade(0, 0) lands on the motors within
+  // 25 ms and the last motion of the route dies partway there. Waiting here
+  // means the route finishes the motion it asked for either way.
+  chassis.waitUntilDone();
 
   const lemlib::Pose after = chassis.getPose();
   std::printf("  end    X %.1f  Y %.1f  H %.0f  (%lu ms)\n", after.x, after.y,
