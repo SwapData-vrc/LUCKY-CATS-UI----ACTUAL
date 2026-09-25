@@ -13,17 +13,17 @@ lemlib::Drivetrain drivetrain(&left_motors, &right_motors,
 pros::Imu imu(20);
 
 pros::Rotation horizontal_encoder(-19);
-pros::Rotation vertical_rotation(-13);
+pros::Rotation vertical_encoder(-12);
 
 // Measures the claw pivot itself, so claw_update() can tell when something
 // has knocked the claw off the position it was holding.
-pros::Rotation claw(1);
+pros::Rotation claw(13);
 
 lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder,
                                                 lemlib::Omniwheel::NEW_275,
                                                 -5.75);
 
-lemlib::TrackingWheel vertical_tracking_wheel(&vertical_rotation,
+lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder,
                                               lemlib::Omniwheel::NEW_2, -2.5);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, nullptr,
@@ -57,13 +57,13 @@ lemlib::Chassis chassis(drivetrain, lateral_controller, angular_controller,
 
 pros::MotorGroup lift({-18, 2}, pros::MotorGearset::green);
 pros::Motor claw_pivot(-3, pros::MotorGearset::green);
-pros::Motor claw_spin(11, pros::MotorGearset::green);
+pros::Motor claw_spin(1, pros::MotorGearset::green);
 pros::Motor intake(9, pros::MotorGearset::blue);
 
 volatile bool chassis_ready = false;
 
 // --------------------------------------------------------------------- claw
-const double CLAW_POS[3] = {180, -850, -1405};
+const double CLAW_POS[3] = {180, -930, -1405};
 
 namespace {
 int g_position = 0;      // which of the three we were last told to go to
@@ -75,6 +75,36 @@ double g_hold_angle = 0; // rotation sensor reading when it stopped, degrees
 // The claw angle from the rotation sensor on port 1, which counts in
 // hundredths of a degree.
 double claw_angle() { return claw.get_position() / 100.0; }
+
+// How long the rotation sensor can go quiet before we stop trusting it, and
+// how far to nudge the claw into position for each timeout that passes while
+// it stays quiet. This sensor drops out often enough on this robot to plan
+// around rather than just detect.
+constexpr uint32_t SENSOR_TIMEOUT_MS = 10000;
+constexpr double SENSOR_NUDGE_DEG = 10.0;
+
+int32_t g_last_raw = 0;       // last raw claw.get_position() we saw change
+bool g_have_last_raw = false; // false until the first reading comes in
+uint32_t g_sensor_bad_since = 0; // 0 while the sensor looks alive
+uint32_t g_last_nudge = 0;       // last time we nudged for a dead sensor
+
+// True once the sensor has gone quiet for SENSOR_TIMEOUT_MS -- either
+// PROS_ERR from a dropped smart port, or a reading that just stops changing,
+// which is what this sensor does more often than it disconnects outright.
+bool claw_sensor_dead() {
+  const int32_t raw = claw.get_position();
+  const bool errored = (raw == PROS_ERR);
+
+  if (!errored && (!g_have_last_raw || raw != g_last_raw)) {
+    g_last_raw = raw;
+    g_have_last_raw = true;
+    g_sensor_bad_since = 0;
+    return false;
+  }
+
+  if (g_sensor_bad_since == 0) g_sensor_bad_since = pros::millis();
+  return pros::millis() - g_sensor_bad_since > SENSOR_TIMEOUT_MS;
+}
 } // namespace
 
 int claw_at() { return g_position; }
@@ -87,11 +117,7 @@ void spinclaw(int position) {
   g_started = pros::millis();
   g_holding = false;
 
-<<<<<<< HEAD
   claw_pivot.move_absolute(g_target, CLAW_SPEED);
-=======
-  claw_pivot.move_absolute(g_target, 127);
->>>>>>> 8c18042e1256f62be226c74dd476c8c4e0c32507
 }
 
 
@@ -110,6 +136,8 @@ void claw_update() {
     // The reference is where it actually stopped, not a number written down
     // here: the sensor's zero depends on how the claw was bolted on.
     g_hold_angle = claw_angle();
+    g_sensor_bad_since = 0;
+    g_last_nudge = 0;
     return;
   }
 
@@ -117,9 +145,20 @@ void claw_update() {
   // needs to -- drift is just the mechanism sitting where gravity puts it.
   if (g_position == 0) return;
 
-  // No sensor, nothing to correct against. Without this an unplugged sensor
-  // reads PROS_ERR and the claw re-commands itself every single loop.
-  if (claw.get_position() == PROS_ERR) return;
+  if (claw_sensor_dead()) {
+    // Can no longer see the claw sag, so hold it against gravity blind:
+    // nudge it further into position on a timer instead of by feel. Repeats
+    // every SENSOR_TIMEOUT_MS for as long as the sensor stays quiet, capped
+    // at nothing -- if it hasn't come back, the claw should keep climbing
+    // rather than slip back down over a long dead stretch.
+    if (pros::millis() - g_last_nudge > SENSOR_TIMEOUT_MS) {
+      const double dir = (g_target < 0) ? -1.0 : 1.0;
+      claw_pivot.move_relative(dir * SENSOR_NUDGE_DEG, CLAW_SPEED);
+      g_last_nudge = pros::millis();
+    }
+    return;
+  }
+  g_last_nudge = 0; // sensor is back -- next dead spell gets a fresh 10s wait
 
   // Knocked, or sagging under what it is holding. Re-issuing the same command
   // clears g_holding, so it settles and latches a fresh reference. If it
