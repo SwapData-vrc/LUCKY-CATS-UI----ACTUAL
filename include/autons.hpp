@@ -4,5 +4,11 @@
 // then add a line to ROUTINES in screen.cpp.
 
 namespace auton {
+void do_nothing();
+void my_route();
+void blue_toggle();
+void red_toggle();
+void example();
+void toggle();
 void skills();
 }

@@ -49,6 +49,12 @@ struct Routine {
 };
 
 const Routine ROUTINES[] = {
+    {"Do nothing", auton::do_nothing},
+    {"My route", auton::my_route},
+    {"Red toggle", auton::red_toggle},
+    {"Blue toggle", auton::blue_toggle},
+    {"Toggle", auton::toggle},
+    {"Example", auton::example},
     {"Skills", auton::skills},
 };
 constexpr int COUNT = static_cast<int>(sizeof(ROUTINES) / sizeof(ROUTINES[0]));
@@ -64,7 +70,11 @@ constexpr int LP_X = 8, LP_Y = 8, LP_W = 220, LP_H = 224;
 constexpr int RP_X = 236, RP_Y = 8, RP_W = 236, RP_H = 224;
 
 constexpr int SEL_X = LP_X + 8, SEL_Y = LP_Y + 24, SEL_W = LP_W - 16, SEL_H = 36;
-constexpr int ITEM_H = 34; // picker list rows, drawn over the RUN button
+constexpr int LIST_TOP = SEL_Y + SEL_H;
+// Picker rows, drawn over the RUN button. Height shrinks as routines are added
+// so the last one still lands on screen: 34 px each until they stop fitting.
+constexpr int ITEM_FIT = (SCR_H - 4 - LIST_TOP) / COUNT;
+constexpr int ITEM_H = ITEM_FIT > 34 ? 34 : ITEM_FIT;
 constexpr int RUN_X = LP_X + 8, RUN_Y = LP_Y + 72, RUN_W = LP_W - 16, RUN_H = 58;
 
 constexpr int FIELD_PX = 176;
@@ -370,7 +380,7 @@ void init() {
   for (int i = 0; i < COUNT; ++i) {
     const int iy = SEL_Y + SEL_H + i * ITEM_H;
     g_items[i] = box(scr, SEL_X, iy, SEL_W, ITEM_H, ink::CTRL, ink::EDGE, 0);
-    g_item_lbl[i] = label(scr, SEL_X + 12, iy + 8, ROUTINES[i].name, ink::TEXT, &lv_font_montserrat_16);
+    g_item_lbl[i] = label(scr, SEL_X + 12, iy + (ITEM_H - 18) / 2, ROUTINES[i].name, ink::TEXT, &lv_font_montserrat_16);
     lv_obj_add_flag(g_items[i], LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(g_item_lbl[i], LV_OBJ_FLAG_HIDDEN);
   }
