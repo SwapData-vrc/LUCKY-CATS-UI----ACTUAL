@@ -11,8 +11,8 @@ namespace {
 // across the tile with nobody touching the controller.
 constexpr int DEADBAND = 5;
 
-// Was the lift up last loop? Used to fire the claw tuck once, on the way up.
-bool lift_was_up = false;
+// disabled -- seed from real height or a route ending lifted looks like a rising edge
+// bool lift_was_up = false;
 
 // ------------------------------------------------------------- heading hold
 // arcade() is open loop: both sides of the drive get the same number. Anything
@@ -51,6 +51,16 @@ void initialize() {
   // so anything slow in front of this is a black brain and a dead controller.
   screen::init();
 
+  // a dead tracker makes every motion run to timeout, so say so at boot
+  std::printf("vertical  tracker port 12: %s\n",
+              vertical_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
+  std::printf("horizontal tracker port 19: %s\n",
+              horizontal_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
+  std::printf("lift       ports 18,2:  %s\n",
+              lift.get_position() == PROS_ERR_F ? "NOT REPORTING" : "ok");
+  std::printf("claw       sensor port 13: %s\n",
+              claw.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
+
   // The claw positions are measured from here, so the robot has to be powered
   // on with the lift down and the claw pointing down.
   lift.tare_position();
@@ -71,9 +81,17 @@ void initialize() {
   // arcade() is open loop and does not use odometry, so driving while this
   // finishes is safe. autonomous() waits for it, because routes are odometry.
   pros::Task calibrate_task([] {
+    // encoders survive a restart
+    horizontal_encoder.reset_position();
+    left_motors.tare_position();
+    right_motors.tare_position();
+
     chassis.calibrate();
+
+    chassis.setPose(0, 0, 0);
+
     chassis_ready = true;
-    std::printf("chassis calibrated\n");
+    std::printf("chassis calibrated, pose 0 0 0\n");
   });
 }
 
@@ -105,6 +123,8 @@ void opcontrol() {
   // True while a screen-started route has the drive, so the brake mode is
   // swapped exactly once on each edge instead of every 25 ms.
   bool route_owns_drive = false;
+
+  // lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
 
   while (true) {
     // A route started from this screen owns every motor for as long as it
@@ -141,6 +161,7 @@ void opcontrol() {
       chassis.setBrakeMode(MOTOR_BRAKE_COAST);
       route_owns_drive = false;
       holding = false; // whatever heading was latched before the route is stale
+      // lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
     }
 
     // ---- drive ----
@@ -189,11 +210,12 @@ void opcontrol() {
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
       spinclaw((claw_at() + 1) % 3);
 
-    // Once the lift is up the claw belongs at position 1. Fires on the way
-    // past, not every loop, so B still works afterwards.
-    const bool lift_up = lift.get_position() > LIFT_CLAW_DEG;
-    if (lift_up && !lift_was_up) spinclaw(1);
-    lift_was_up = lift_up;
+    const double lift_h = lift.get_position();
+
+    // ---- claw follows the lift ---- (disabled, uncomment with the seeds above)
+    // const bool lift_up = lift_h > LIFT_CLAW_DEG;
+    // if (lift_up && !lift_was_up) spinclaw(1);
+    // lift_was_up = lift_up;
 
     claw_update();
 
@@ -215,9 +237,8 @@ void opcontrol() {
     }
 
     // ---- lift ----
-    const double height = lift.get_position();
-    if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) && height < LIFT_TOP) lift.move(110);
-    else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2) && height > LIFT_BOTTOM) lift.move(-90);
+    if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) && lift_h < LIFT_TOP) lift.move(127);
+    else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2) && lift_h > LIFT_BOTTOM) lift.move(-127);
     else lift.brake();
 
     // Required. Without it this loop never yields and the screen and the

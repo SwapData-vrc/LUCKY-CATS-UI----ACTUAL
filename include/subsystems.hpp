@@ -18,7 +18,8 @@ extern pros::Rotation vertical_encoder;
 extern pros::Rotation claw; // measures the claw pivot itself
 
 extern lemlib::TrackingWheel horizontal_tracking_wheel;
-extern lemlib::TrackingWheel vertical_tracking_wheel;
+extern lemlib::TrackingWheel left_drive_tracker;
+extern lemlib::TrackingWheel right_drive_tracker;
 extern lemlib::OdomSensors sensors;
 
 // --------------------------------------------------------------------- chassis
@@ -37,8 +38,10 @@ const double LIFT_TICKS = 900;    // motor degrees, bottom to top
 const double LIFT_TRAVEL = 0.15;  // ride height while driving, 0 to 1
 const double LIFT_TOP = 2700;     // do not drive the lift above this
 const double LIFT_BOTTOM = -50;   // or below this
-const double LIFT_CLAW_DEG = 200; // above this the claw tucks itself to 1
 const double CLAW_DRIFT_DEG = 15; // slip allowed before the claw is put back
+
+// Above this the claw tucks itself to position 1.
+const double LIFT_CLAW_DEG = 200;
 
 // Claw pivot speed in RPM. 200 is flat out for a green cartridge -- the second
 // argument of move_absolute is a velocity, and PROS clamps it to whatever the

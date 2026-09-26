@@ -49,12 +49,8 @@ struct Routine {
 };
 
 const Routine ROUTINES[] = {
-    {"Do nothing", auton::do_nothing},
-    {"My route", auton::my_route},
-    {"Red toggle", auton::red_toggle},
-    {"Blue toggle", auton::blue_toggle},
-    {"Toggle", auton::toggle},
-    {"Example", auton::example},
+    {"30pts", auton::thirty_pts},
+    {"Test", auton::test},
     {"Skills", auton::skills},
 };
 constexpr int COUNT = static_cast<int>(sizeof(ROUTINES) / sizeof(ROUTINES[0]));
@@ -75,6 +71,10 @@ constexpr int LIST_TOP = SEL_Y + SEL_H;
 // so the last one still lands on screen: 34 px each until they stop fitting.
 constexpr int ITEM_FIT = (SCR_H - 4 - LIST_TOP) / COUNT;
 constexpr int ITEM_H = ITEM_FIT > 34 ? 34 : ITEM_FIT;
+// Rows below ~24 px cannot hold the 16 px face with any padding, so the picker
+// steps down a size rather than letting the text touch both edges.
+constexpr bool ITEM_BIG = ITEM_H >= 24;
+constexpr int ITEM_FONT_H = ITEM_BIG ? 18 : 15;
 constexpr int RUN_X = LP_X + 8, RUN_Y = LP_Y + 72, RUN_W = LP_W - 16, RUN_H = 58;
 
 constexpr int FIELD_PX = 176;
@@ -175,8 +175,10 @@ void sample() {
     draw_robot(static_cast<float>(p.theta));
   }
   if (g_pose != nullptr) {
+    // L is the lift in motor degrees
     char buf[48];
-    std::snprintf(buf, sizeof(buf), "X%6.1f  Y%6.1f  H%4.0f", p.x, p.y, p.theta);
+    std::snprintf(buf, sizeof(buf), "X%5.1f Y%5.1f H%4.0f L%6.0f", p.x, p.y, p.theta,
+                  lift.get_position());
     lv_label_set_text(g_pose, buf);
   }
 
@@ -380,7 +382,9 @@ void init() {
   for (int i = 0; i < COUNT; ++i) {
     const int iy = SEL_Y + SEL_H + i * ITEM_H;
     g_items[i] = box(scr, SEL_X, iy, SEL_W, ITEM_H, ink::CTRL, ink::EDGE, 0);
-    g_item_lbl[i] = label(scr, SEL_X + 12, iy + (ITEM_H - 18) / 2, ROUTINES[i].name, ink::TEXT, &lv_font_montserrat_16);
+    g_item_lbl[i] = label(scr, SEL_X + 12, iy + (ITEM_H - ITEM_FONT_H) / 2,
+                          ROUTINES[i].name, ink::TEXT,
+                          ITEM_BIG ? &lv_font_montserrat_16 : &lv_font_montserrat_14);
     lv_obj_add_flag(g_items[i], LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(g_item_lbl[i], LV_OBJ_FLAG_HIDDEN);
   }
