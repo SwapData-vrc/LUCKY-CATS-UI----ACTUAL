@@ -25,6 +25,10 @@ void request_stop();
 
 bool running();
 
+// Shows the next page of the recorded route on the brain. Call it again to
+// page on; past the last page it hides itself.
+void show_code_page();
+
 // The current selection, for the terminal.
 const char* selected_name();
 

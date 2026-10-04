@@ -43,6 +43,7 @@ const double CLAW_DRIFT_DEG = 15; // slip allowed before the claw is put back
 // Above this the claw tucks itself to position 1.
 const double LIFT_CLAW_DEG = 200;
 
+
 // Claw pivot speed in RPM. 200 is flat out for a green cartridge -- the second
 // argument of move_absolute is a velocity, and PROS clamps it to whatever the
 // gearset can do. Lower this to make the claw move more gently.
@@ -57,6 +58,15 @@ extern const double CLAW_POS[3];
 // and starts the odometry task, so ANY setPose before it completes is thrown
 // away -- which makes a route drive from a position it was never at.
 extern volatile bool chassis_ready;
+
+// re-home: drive this far past pos 0, settle, then call that spot pos 0
+const double CLAW_HOME_PAST = 200;
+const uint32_t CLAW_HOME_GIVEUP_MS = 1800;
+const uint32_t CLAW_HOME_SETTLE_MS = 20;
+
+// Drive the claw down past pos 0, then call that the new zero. Returns
+// straight away, claw_update() finishes it off.
+void claw_home();
 
 // Move the claw to position 0, 1 or 2. Returns immediately.
 void spinclaw(int position);

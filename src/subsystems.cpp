@@ -73,6 +73,8 @@ int g_position = 0;      // which of the three we were last told to go to
 double g_target = 0;     // CLAW_POS[g_position], in motor degrees
 uint32_t g_started = 0;  // when that move was commanded
 bool g_holding = false;  // has it stopped moving and latched a reference yet
+int g_homing = 0;        // 0 off, 1 moving, 2 settling
+uint32_t g_home_until = 0;
 double g_hold_angle = 0; // rotation sensor reading when it stopped, degrees
 
 // The claw angle from the rotation sensor on port 1, which counts in
@@ -112,6 +114,12 @@ bool claw_sensor_dead() {
 
 int claw_at() { return g_position; }
 
+void claw_home() {
+  g_homing = 1;
+  g_home_until = pros::millis() + CLAW_HOME_GIVEUP_MS;
+  claw_pivot.move_absolute(CLAW_POS[0] + CLAW_HOME_PAST, CLAW_SPEED);
+}
+
 void spinclaw(int position) {
   if (position < 0 || position > 2) return;
 
@@ -127,6 +135,30 @@ void spinclaw(int position) {
 
 
 void claw_update() {
+  // re-home: drive past pos 0, let it settle, then call that spot pos 0
+  if (g_homing == 1) {
+    double want = CLAW_POS[0] + CLAW_HOME_PAST;
+    bool there = std::fabs(claw_pivot.get_position() - want) < 15;
+    if (there || pros::millis() > g_home_until) {
+      g_homing = 2;
+      g_home_until = pros::millis() + CLAW_HOME_SETTLE_MS;
+    }
+    return;
+  }
+  if (g_homing == 2) {
+    if (pros::millis() < g_home_until) return;
+
+    claw_pivot.move(0);
+    claw_pivot.set_zero_position(CLAW_POS[0]); // here is pos 0 now
+    g_homing = 0;
+
+    g_position = 0;
+    g_target = CLAW_POS[0];
+    g_holding = true;
+    g_hold_angle = claw_angle();
+    return;
+  }
+
   // Nothing to do until it either arrives or gives up trying.
   if (!g_holding) {
     const bool arrived = std::fabs(g_target - claw_pivot.get_position()) < 5;

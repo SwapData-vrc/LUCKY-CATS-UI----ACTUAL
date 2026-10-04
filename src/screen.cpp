@@ -16,6 +16,7 @@
 #include "screen.hpp"
 
 #include "autons.hpp"
+#include "record.hpp"
 #include "field_img.h"
 #include "liblvgl/lvgl.h"
 #include "pros/misc.h"
@@ -49,9 +50,12 @@ struct Routine {
 };
 
 const Routine ROUTINES[] = {
-    {"30pts", auton::thirty_pts},
-    {"Test", auton::test},
     {"Skills", auton::skills},
+  {"30pts", auton::thirty_pts},
+
+    
+    {"Test", auton::test},
+    
 };
 constexpr int COUNT = static_cast<int>(sizeof(ROUTINES) / sizeof(ROUTINES[0]));
 
@@ -97,6 +101,11 @@ lv_obj_t* g_trail = nullptr;
 lv_obj_t* g_bot = nullptr;
 lv_obj_t* g_pose = nullptr;
 lv_obj_t* g_state = nullptr;
+lv_obj_t* g_code_bg = nullptr;
+lv_obj_t* g_code = nullptr;
+volatile int g_code_req = 0;  // bumped by opcontrol, acted on by pump
+int g_page = 0;
+const int CODE_ROWS = 24;
 lv_obj_t* g_dot = nullptr;
 
 // --------------------------------------------------------------- the robot
@@ -177,8 +186,9 @@ void sample() {
   if (g_pose != nullptr) {
     // L is the lift in motor degrees
     char buf[48];
-    std::snprintf(buf, sizeof(buf), "X%5.1f Y%5.1f H%4.0f L%6.0f", p.x, p.y, p.theta,
-                  lift.get_position());
+    std::snprintf(buf, sizeof(buf), "X%5.1f Y%5.1f H%4.0f %s%d",
+                  p.x, p.y, p.theta,
+                  record::active() ? "REC" : "R", record::count());
     lv_label_set_text(g_pose, buf);
   }
 
@@ -291,6 +301,38 @@ void poll_touch() {
 // is alive but schedules no redraw, and lv_timer_handler() alone did not fix
 // it. lv_refr_now() refreshes the display directly and is the one call
 // observed to actually put pixels on this screen.
+void draw_code_page() {
+  if (g_code_bg == nullptr) return;
+
+  const int total = record::line_count();
+  if (total == 0) { // nothing recorded, just make sure we are hidden
+    lv_obj_add_flag(g_code_bg, LV_OBJ_FLAG_HIDDEN);
+    g_page = 0;
+    return;
+  }
+
+  const int pages = (total + CODE_ROWS - 1) / CODE_ROWS;
+  if (g_page >= pages) { // past the last page, back to the field
+    lv_obj_add_flag(g_code_bg, LV_OBJ_FLAG_HIDDEN);
+    g_page = 0;
+    return;
+  }
+
+  static char buf[CODE_ROWS * (record::LINE_LEN + 1) + 48];
+  int at = std::snprintf(buf, sizeof(buf), "-- page %d/%d, RIGHT+Y for more --\n",
+                         g_page + 1, pages);
+
+  for (int r = 0; r < CODE_ROWS; r++) {
+    const int i = g_page * CODE_ROWS + r;
+    if (i >= total) break;
+    at += std::snprintf(buf + at, sizeof(buf) - at, "%s\n", record::line(i));
+  }
+
+  lv_label_set_text(g_code, buf);
+  lv_obj_clear_flag(g_code_bg, LV_OBJ_FLAG_HIDDEN);
+  g_page++;
+}
+
 void pump(void*) {
   int tick = 0;
   while (true) {
@@ -303,6 +345,9 @@ void pump(void*) {
       const lemlib::Pose p = chassis.getPose();
       std::printf("  ..     X %.1f  Y %.1f  H %.0f\n", p.x, p.y, p.theta);
     }
+    // lvgl is not thread safe, so the code view is drawn here and nowhere else
+    if (g_code_req > 0) { g_code_req = 0; draw_code_page(); }
+
     ++tick;
     lv_timer_handler();
     lv_refr_now(NULL);
@@ -425,14 +470,21 @@ void init() {
   draw_robot(0);
 
   // Pose, monospaced so the digits stop jittering sideways as they change.
-  g_pose = label(scr, RP_X + 10, FIELD_Y + FIELD_PX + 8, "X   0.0  Y   0.0  H   0", ink::TEXT,
+  g_pose = label(scr, 6, SCR_H - 14, "X   0.0  Y   0.0  H   0", ink::TEXT,
                  &lv_font_unscii_8);
   lv_obj_set_style_text_letter_space(g_pose, 1, LV_PART_MAIN);
 
   paint();
   lv_refr_now(NULL);
 
+  // code view, built hidden BEFORE the pump starts or it flashes on boot
+  g_code_bg = box(scr, 0, 0, SCR_W, SCR_H, ink::CARD, ink::EDGE, 0);
+  lv_obj_add_flag(g_code_bg, LV_OBJ_FLAG_HIDDEN);
+  g_code = label(g_code_bg, 6, 4, " ", ink::TEXT, &lv_font_unscii_8);
+  lv_obj_set_style_text_letter_space(g_code, 0, LV_PART_MAIN);
+
   pros::Task pump_task(pump, nullptr, "lvgl_pump");
+
   std::printf("screen: ready, %d routines\n", COUNT);
 }
 
@@ -502,6 +554,9 @@ void request_stop() {
 }
 
 bool running() { return g_running; }
+
+
+void show_code_page() { g_code_req = 1; }
 
 const char* selected_name() { return ROUTINES[g_selected].name; }
 

@@ -1,4 +1,5 @@
 #include "main.h"
+#include "record.hpp"
 #include "screen.hpp"
 #include "subsystems.hpp"
 
@@ -11,8 +12,9 @@ namespace {
 // across the tile with nobody touching the controller.
 constexpr int DEADBAND = 5;
 
-// disabled -- seed from real height or a route ending lifted looks like a rising edge
-// bool lift_was_up = false;
+// set from the real height when we take over, else a route that ends
+// with the lift up looks like the driver just raised it
+bool lift_was_up = false;
 
 // ------------------------------------------------------------- heading hold
 // arcade() is open loop: both sides of the drive get the same number. Anything
@@ -124,7 +126,7 @@ void opcontrol() {
   // swapped exactly once on each edge instead of every 25 ms.
   bool route_owns_drive = false;
 
-  // lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
+  lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
 
   while (true) {
     // A route started from this screen owns every motor for as long as it
@@ -161,7 +163,7 @@ void opcontrol() {
       chassis.setBrakeMode(MOTOR_BRAKE_COAST);
       route_owns_drive = false;
       holding = false; // whatever heading was latched before the route is stale
-      // lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
+      lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
     }
 
     // ---- drive ----
@@ -175,8 +177,10 @@ void opcontrol() {
 
     // Hold the heading while the driver is going somewhere and not steering.
     // Any turn input at all hands steering straight back, on the same loop.
-    const double now = imu.get_heading();
-    if (HEADING_HOLD && chassis_ready && std::isfinite(now) && rightX == 0 && leftY != 0) {
+    // cheap checks first, saves a port read when hold cant kick in anyway
+    const bool want_hold = HEADING_HOLD && chassis_ready && rightX == 0 && leftY != 0;
+    const double now = want_hold ? imu.get_heading() : 0.0;
+    if (want_hold && std::isfinite(now)) {
       if (!holding) {
         const double spin = imu.get_gyro_rate().z;
         if (std::isfinite(spin) && std::fabs(spin) < SETTLED_DPS) {
@@ -205,6 +209,27 @@ void opcontrol() {
         master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
       screen::request_run();
 
+    // RIGHT+X = record on/off, RIGHT+Y = print it. two buttons so you cant
+    // knock it on mid match. same idea as LEFT+A for routes.
+    const bool rec_mod = master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT);
+
+    if (rec_mod && master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+      record::toggle();
+      master.rumble(record::active() ? "." : "..");
+    }
+
+    // RIGHT+Y builds the code and shows it on the brain, a page at a time.
+    // keep pressing to page through, it hides itself at the end.
+    if (rec_mod && master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
+      if (record::line_count() == 0) record::print_last();
+      screen::show_code_page();
+      master.rumble("-");
+    }
+
+    // UP drives the claw all the way down and calls that zero again
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP))
+      claw_home();
+
     // ---- claw ----
     // B steps through the three positions.
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
@@ -212,34 +237,37 @@ void opcontrol() {
 
     const double lift_h = lift.get_position();
 
-    // ---- claw follows the lift ---- (disabled, uncomment with the seeds above)
-    // const bool lift_up = lift_h > LIFT_CLAW_DEG;
-    // if (lift_up && !lift_was_up) spinclaw(1);
-    // lift_was_up = lift_up;
+    // ---- claw follows the lift ----
+    const bool lift_up = lift_h > LIFT_CLAW_DEG;
+    if (lift_up && !lift_was_up) spinclaw(1);
+    lift_was_up = lift_up;
 
     claw_update();
 
     // ---- intake ----
+    int intake_cmd = 0, spin_cmd = 0;
     if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-      intake.move(100);
-
-
-      claw_spin.move(-50);
-
+      intake_cmd = 100;
+      spin_cmd = -50;
     } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-
-       intake.move(-100);
-
-      claw_spin.move(50);
-    } else {
-      intake.move(0);
-      claw_spin.move(0);
+      intake_cmd = -100;
+      spin_cmd = 50;
     }
+    intake.move(intake_cmd);
+    claw_spin.move(spin_cmd);
 
     // ---- lift ----
-    if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) && lift_h < LIFT_TOP) lift.move(127);
-    else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2) && lift_h > LIFT_BOTTOM) lift.move(-127);
+    const bool l1 = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+    const bool l2 = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+
+    int lift_cmd = 0;
+    if (l1 && lift_h < LIFT_TOP) lift_cmd = 127;
+    else if (l2 && lift_h > LIFT_BOTTOM) lift_cmd = -127;
+
+    if (lift_cmd != 0) lift.move(lift_cmd);
     else lift.brake();
+
+    record::update(lift_cmd, intake_cmd, spin_cmd);
 
     // Required. Without it this loop never yields and the screen and the
     // competition task are starved.
