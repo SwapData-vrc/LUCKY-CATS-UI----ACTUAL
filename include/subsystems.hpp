@@ -1,31 +1,28 @@
 #pragma once
 
-#include "lemlib/api.hpp" // IWYU pragma: keep
-#include "main.h"         // IWYU pragma: keep
+#include "EZ-Template/api.hpp" // IWYU pragma: keep
+#include "main.h"              // IWYU pragma: keep
 
 // Every motor, sensor and number that describes this robot. Ports live in
 // subsystems.cpp and nowhere else.
 
 // ---------------------------------------------------------------- drivetrain
-extern pros::MotorGroup left_motors;
-extern pros::MotorGroup right_motors;
-extern lemlib::Drivetrain drivetrain;
+// EZ-Template's Drive owns the motors, so the groups the rest of the code
+// reaches for are chassis.left_motors / chassis.right_motors.
+extern Drive chassis;
 
 // ------------------------------------------------------------------- sensors
-extern pros::Imu imu;
 extern pros::Rotation horizontal_encoder;
 extern pros::Rotation vertical_encoder;
 extern pros::Rotation claw; // measures the claw pivot itself
 
-extern lemlib::TrackingWheel horizontal_tracking_wheel;
-extern lemlib::TrackingWheel left_drive_tracker;
-extern lemlib::TrackingWheel right_drive_tracker;
-extern lemlib::OdomSensors sensors;
+extern ez::tracking_wheel horizontal_tracker;
 
-// --------------------------------------------------------------------- chassis
-extern lemlib::ControllerSettings lateral_controller;
-extern lemlib::ControllerSettings angular_controller;
-extern lemlib::Chassis chassis;
+// --------------------------------------------------- numbers that describe it
+const int IMU_PORT = 20;
+const double WHEEL_DIA = 3.4211;  // 24 in drive read 22.8
+const double DRIVE_TICKS = 360;   // blue cartridge, after gearing
+const double TRACK_WIDTH = 11.5;  // between the drive wheel contact patches
 
 // ---------------------------------------------------------------- mechanisms
 extern pros::MotorGroup lift;
@@ -54,9 +51,9 @@ const int CLAW_SPEED = 200;
 // claw_pivot.tare_position() puts zero.
 extern const double CLAW_POS[3];
 
-// False until chassis.calibrate() has finished. calibrate() zeroes the pose
-// and starts the odometry task, so ANY setPose before it completes is thrown
-// away -- which makes a route drive from a position it was never at.
+// False until chassis.initialize() has finished. initialize() calibrates the
+// IMU and starts the odometry task, so ANY odom_xyt_set before it completes is
+// thrown away -- which makes a route drive from a position it was never at.
 extern volatile bool chassis_ready;
 
 // re-home: drive this far past pos 0, settle, then call that spot pos 0

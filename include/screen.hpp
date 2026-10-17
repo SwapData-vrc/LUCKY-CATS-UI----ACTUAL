@@ -25,6 +25,11 @@ void request_stop();
 
 bool running();
 
+// Clears the running flag without touching the drive. The field kills the
+// autonomous task outright, so a route stopped that way never reaches the end
+// of run_selected() and the flag would stay set into the driver period.
+void clear_running();
+
 // Shows the next page of the recorded route on the brain. Call it again to
 // page on; past the last page it hides itself.
 void show_code_page();

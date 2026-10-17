@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// records driving + subsystems, prints it back as lemlib code.
+// records driving + subsystems, prints it back as EZ-Template code.
 // RIGHT+X starts/stops it, RIGHT+Y prints the last one. stops after a min.
 // the recording sits in ram til the program restarts, so you can drive
 // unplugged, then read it off the brain screen with RIGHT+Y.

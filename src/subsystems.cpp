@@ -1,16 +1,12 @@
 #include "subsystems.hpp" // IWYU pragma: keep
 
-pros::MotorGroup left_motors({-7, -5}, pros::MotorGearset::blue);
-pros::MotorGroup right_motors({4, 6}, pros::MotorGearset::blue);
-
-lemlib::Drivetrain drivetrain(&left_motors, &right_motors,
-                              11.5,                         // track width, inches
-                              lemlib::Omniwheel::NEW_325, // wheel
-                              360, // wheel RPM after gearing
-                              2    // horizontal drift
-);
-
-pros::Imu imu(20);
+// EZ-Template owns the drive motors, the IMU and the odometry. Ports are given
+// once here: negative numbers are reversed motors, exactly as before.
+Drive chassis({-7, -5},        // left drive
+              {4, 6},          // right drive
+              IMU_PORT,
+              WHEEL_DIA,
+              DRIVE_TICKS);
 
 pros::Rotation horizontal_encoder(19);
 pros::Rotation vertical_encoder(-12);
@@ -19,44 +15,8 @@ pros::Rotation vertical_encoder(-12);
 // has knocked the claw off the position it was holding.
 pros::Rotation claw(13);
 
-// 2.7966: 24 in slide read 23.6
-lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, 2.7966f,
-                                                -5.75);
-
-// Y off the drive encoders -- port 12 tracker is dead. +-5.75 is half track width.
-// 3.4211: 24 in drive read 22.8
-lemlib::TrackingWheel left_drive_tracker(&left_motors, 3.4211f, -5.75, 360);
-lemlib::TrackingWheel right_drive_tracker(&right_motors, 3.4211f, 5.75, 360);
-
-lemlib::OdomSensors sensors(&left_drive_tracker, &right_drive_tracker,
-                            &horizontal_tracking_wheel, nullptr, &imu);
-// lateral PID controller
-lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
-
-  
-                                              0, // integral gain (kI)
-                                              9, // derivative gain (kD)
-                                              3, // anti windup
-                                              1, // small error range, in inches
-                                              100, // small error range timeout, in milliseconds
-                                              3, // large error range, in inches
-                                              500, // large error range timeout, in milliseconds
-                                              20 // maximum acceleration (slew)
-);
-
-// angular PID controller
-lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
-                                              0, // integral gain (kI)
-                                              20, // derivative gain (kD)
-                                              3, // anti windup
-                                              2.5, // small error range, in degrees
-                                              100, // small error range timeout, in milliseconds
-                                              3, // large error range, in degrees
-                                              500, // large error range timeout, in milliseconds
-                                              0 // maximum acceleration (slew)
-);
-lemlib::Chassis chassis(drivetrain, lateral_controller, angular_controller,
-                        sensors);
+// 2.7966: 24 in slide read 23.6. Offset is half the track width, behind centre.
+ez::tracking_wheel horizontal_tracker(19, 2.7966, -5.75);
 
 pros::MotorGroup lift({-18, 2}, pros::MotorGearset::green);
 pros::Motor claw_pivot(-3, pros::MotorGearset::green);
