@@ -258,7 +258,7 @@
         "version": "8.3.9"
       },
       "EZ-Template": {
-        "location": "C:\\Users\\dhava\\AppData\\Roaming\\PROS\\templates\\LemLib@0.5.6",
+        "location": "C:\\Users\\dhava\\AppData\\Roaming\\PROS\\templates\\EZ-Template@3.2.2",
         "metadata": {
           "origin": "EZ-Template"
         },
@@ -281,6 +281,37 @@
         "target": "v5",
         "user_files": [],
         "version": "3.2.2"
+      },
+      "libmvlib": {
+        "location": "C:\\Users\\dhava\\AppData\\Roaming\\PROS\\templates\\libmvlib@3.0.0",
+        "metadata": {
+          "origin": "local"
+        },
+        "name": "libmvlib",
+        "py/object": "pros.conductor.templates.local_template.LocalTemplate",
+        "supported_kernels": "^4.2.2",
+        "system_files": [
+          "firmware/libmvlib.a",
+          "include/mvlib/Optional/customOdom.hpp",
+          "include/mvlib/Optional/ezTemplate.hpp",
+          "include/mvlib/Optional/lemlib.hpp",
+          "include/mvlib/Optional/okapi.hpp",
+          "include/mvlib/api.hpp",
+          "include/mvlib/core.hpp",
+          "include/mvlib/literals.hpp",
+          "include/mvlib/private/forwardLogMacros.h",
+          "include/mvlib/private/misc.hpp",
+          "include/mvlib/private/raii.hpp",
+          "include/mvlib/private/sdSink.hpp",
+          "include/mvlib/private/telemetry.hpp",
+          "include/mvlib/renderHelper.hpp",
+          "include/mvlib/types.hpp",
+          "include/mvlib/watches.hpp",
+          "include/mvlib/waypoint.hpp"
+        ],
+        "target": "v5",
+        "user_files": [],
+        "version": "3.0.0"
       }
     },
     "upload_options": {

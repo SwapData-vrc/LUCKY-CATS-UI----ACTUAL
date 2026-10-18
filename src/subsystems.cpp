@@ -18,6 +18,13 @@ pros::Rotation claw(13);
 // 2.7966: 24 in slide read 23.6. Offset is half the track width, behind centre.
 ez::tracking_wheel horizontal_tracker(19, 2.7966, -5.75);
 
+// Same ports as the drive above. MVLib's setRobot() wants MotorGroups and
+// EZ-Template keeps its motors in plain vectors, so these are a second handle
+// onto the same four motors. Read-only -- nothing here ever commands them, or
+// it would be fighting the chassis for the drive.
+pros::MotorGroup telemetry_left({-7, -5});
+pros::MotorGroup telemetry_right({4, 6});
+
 pros::MotorGroup lift({-18, 2}, pros::MotorGearset::green);
 pros::Motor claw_pivot(-3, pros::MotorGearset::green);
 pros::Motor claw_spin(1, pros::MotorGearset::green);

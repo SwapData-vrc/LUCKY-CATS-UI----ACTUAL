@@ -13,6 +13,7 @@
  * Palette is the old selector's, kept so the two builds look like one robot.
  */
 
+#include "mvlib/api.hpp"
 #include "screen.hpp"
 
 #include "autons.hpp"
@@ -253,7 +254,7 @@ void paint() {
 void select(int i) {
   if (i < 0 || i >= COUNT) return;
   g_selected = i;
-  std::printf("auton selected: %s\n", ROUTINES[i].name);
+  mvlib::Logger::getInstance().info("auton selected: %s\n", ROUTINES[i].name);
 }
 
 // ------------------------------------------------------------------ touch
@@ -269,7 +270,7 @@ void poll_touch() {
 
   if (down && !was_down) {
     const int x = t.x, y = t.y;
-    std::printf("touch %d,%d\n", x, y); // so a dead touchscreen is visible, not guessed
+    mvlib::Logger::getInstance().info("touch %d,%d\n", x, y); // so a dead touchscreen is visible, not guessed
 
     if (g_open) {
       // While open, the list owns the whole left panel: a tap that misses an
@@ -341,7 +342,7 @@ void pump(void*) {
     // poses than as a memory of the robot moving.
     if (g_running && (tick % 12) == 0) {
       const ez::pose p = chassis.odom_pose_get();
-      std::printf("  ..     X %.1f  Y %.1f  H %.0f\n", p.x, p.y, p.theta);
+      mvlib::Logger::getInstance().info("  ..     X %.1f  Y %.1f  H %.0f\n", p.x, p.y, p.theta);
     }
     // lvgl is not thread safe, so the code view is drawn here and nowhere else
     if (g_code_req > 0) { g_code_req = 0; draw_code_page(); }
@@ -399,10 +400,10 @@ void init() {
 
   lv_obj_t* scr = lv_scr_act();
   if (scr == nullptr) {
-    std::printf("screen: LVGL never came up after %d ms -- selector disabled\n", waited);
+    mvlib::Logger::getInstance().warn("screen: LVGL never came up after %d ms -- selector disabled\n", waited);
     return;
   }
-  std::printf("screen: display ready after %d ms\n", waited);
+  mvlib::Logger::getInstance().info("screen: display ready after %d ms\n", waited);
 
   lv_obj_set_style_bg_color(scr, lv_color_hex(ink::BG), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
@@ -483,7 +484,7 @@ void init() {
 
   pros::Task pump_task(pump, nullptr, "lvgl_pump");
 
-  std::printf("screen: ready, %d routines\n", COUNT);
+  mvlib::Logger::getInstance().info("screen: ready, %d routines\n", COUNT);
 }
 
 // -------------------------------------------------------------------- run
@@ -493,8 +494,8 @@ void run_selected() {
   paint();
 
   const ez::pose before = chassis.odom_pose_get();
-  std::printf("auton: running %s\n", ROUTINES[g_selected].name);
-  std::printf("  start  X %.1f  Y %.1f  H %.0f\n", before.x, before.y, before.theta);
+  mvlib::Logger::getInstance().info("auton: running %s\n", ROUTINES[g_selected].name);
+  mvlib::Logger::getInstance().info("  start  X %.1f  Y %.1f  H %.0f\n", before.x, before.y, before.theta);
 
   const uint32_t t0 = pros::millis();
   if (ROUTINES[g_selected].run != nullptr) ROUTINES[g_selected].run();
@@ -508,23 +509,23 @@ void run_selected() {
   chassis.pid_wait();
 
   const ez::pose after = chassis.odom_pose_get();
-  std::printf("  end    X %.1f  Y %.1f  H %.0f  (%lu ms)\n", after.x, after.y,
+  mvlib::Logger::getInstance().info("  end    X %.1f  Y %.1f  H %.0f  (%lu ms)\n", after.x, after.y,
               after.theta, static_cast<unsigned long>(pros::millis() - t0));
 
   g_running = false;
   paint();
-  std::printf("auton: done\n");
+  mvlib::Logger::getInstance().info("auton: done\n");
 }
 
 bool request_run() {
   // A screen button must never drive the robot at an event. Under field
   // control the only thing that starts autonomous is the field.
   if (pros::competition::is_connected()) {
-    std::printf("run refused: under competition control\n");
+    mvlib::Logger::getInstance().warn("run refused: under competition control\n");
     return false;
   }
   if (g_running) {
-    std::printf("run refused: already running\n");
+    mvlib::Logger::getInstance().warn("run refused: already running\n");
     return false;
   }
 
@@ -533,11 +534,11 @@ bool request_run() {
   // and then drives from wherever EZ-Template believes it is -- which looks
   // exactly like a route swerving off on its own.
   if (!chassis_ready) {
-    std::printf("run refused: still calibrating -- wait a moment\n");
+    mvlib::Logger::getInstance().warn("run refused: still calibrating -- wait a moment\n");
     return false;
   }
 
-  std::printf("run: starting %s\n", ROUTINES[g_selected].name);
+  mvlib::Logger::getInstance().info("run: starting %s\n", ROUTINES[g_selected].name);
   delete g_run_task;
   g_run_task = new pros::Task([] { run_selected(); }, "auton_run");
   return true;
@@ -549,7 +550,7 @@ void request_stop() {
   chassis.drive_set(0, 0);
   g_running = false;
   paint();
-  std::printf("run stopped\n");
+  mvlib::Logger::getInstance().info("run stopped\n");
 }
 
 bool running() { return g_running; }

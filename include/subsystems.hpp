@@ -18,6 +18,10 @@ extern pros::Rotation claw; // measures the claw pivot itself
 
 extern ez::tracking_wheel horizontal_tracker;
 
+// Read-only drive handles for MVLib telemetry. See subsystems.cpp.
+extern pros::MotorGroup telemetry_left;
+extern pros::MotorGroup telemetry_right;
+
 // --------------------------------------------------- numbers that describe it
 const int IMU_PORT = 20;
 const double WHEEL_DIA = 3.4211;  // 24 in drive read 22.8
