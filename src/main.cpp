@@ -1,4 +1,6 @@
 #include "main.h"
+#include "mvlib/api.hpp"
+#include "mvlib/Optional/lemlib.hpp"
 #include "record.hpp"
 #include "screen.hpp"
 #include "subsystems.hpp"
@@ -49,19 +51,54 @@ double heading_error(double to, double from) {
 } // namespace
 
 void initialize() {
-  // Screen first. PROS does not start opcontrol() until initialize() returns,
+  // MVLib before anything that prints. Creating the logger takes the terminal
+  // over for its own binary stream, and from that point a stray printf lands
+  // in the middle of a packet -- so every message in this project goes through
+  // mv.info() instead. Registering watches is the slow part and it is only a
+  // few ms, so the screen still comes up well before initialize() returns.
+  auto &mv = mvlib::Logger::getInstance();
+  mvlib::setOdom(&chassis);
+  mv.setRobot({&left_motors, &right_motors}, true);
+
+  mv.watch("Battery", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 1000,
+           [] { return pros::battery::get_capacity(); });
+  mv.watch("Drive Temp", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 1000,
+           [] {
+             double hot = 0;
+             for (auto t : left_motors.get_temperature_all()) hot = std::fmax(hot, t);
+             for (auto t : right_motors.get_temperature_all()) hot = std::fmax(hot, t);
+             return hot;
+           });
+  mv.watch("Lift", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 100,
+           [] { return lift.get_position(); });
+  mv.watch("Claw Pos", mvlib::LogLevel::INFO, mvlib::WatchMode::onChange, 50,
+           [] { return claw_at(); });
+  mv.watch("Claw Angle", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 100,
+           [] { return claw.get_position() / 100.0; });
+  mv.watch("Claw Stop Read", mvlib::LogLevel::INFO, mvlib::WatchMode::onChange, 250,
+           [] { return claw_home_raw(); });
+  mv.watch("Intake", mvlib::LogLevel::INFO, mvlib::WatchMode::onChange, 50,
+           [] { return intake.get_target_velocity(); });
+  mv.watch("Horiz Tracker", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 250,
+           [] { return horizontal_encoder.get_position() / 100.0; });
+  mv.watch("Chassis Ready", mvlib::LogLevel::INFO, mvlib::WatchMode::onChange, 100,
+           [] { return chassis_ready ? 1 : 0; });
+
+  mv.start();
+
+  // Screen next. PROS does not start opcontrol() until initialize() returns,
   // so anything slow in front of this is a black brain and a dead controller.
   screen::init();
 
   // a dead tracker makes every motion run to timeout, so say so at boot
-  std::printf("vertical  tracker port 12: %s\n",
-              vertical_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
-  std::printf("horizontal tracker port 19: %s\n",
-              horizontal_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
-  std::printf("lift       ports 18,2:  %s\n",
-              lift.get_position() == PROS_ERR_F ? "NOT REPORTING" : "ok");
-  std::printf("claw       sensor port 13: %s\n",
-              claw.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
+  mv.info("vertical  tracker port 12: %s\n",
+          vertical_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
+  mv.info("horizontal tracker port 19: %s\n",
+          horizontal_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
+  mv.info("lift       ports 18,2:  %s\n",
+          lift.get_position() == PROS_ERR_F ? "NOT REPORTING" : "ok");
+  mv.info("claw       sensor port 13: %s\n",
+          claw.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
 
   // The claw positions are measured from here, so the robot has to be powered
   // on with the lift down and the claw pointing down.
@@ -93,7 +130,7 @@ void initialize() {
     chassis.setPose(0, 0, 0);
 
     chassis_ready = true;
-    std::printf("chassis calibrated, pose 0 0 0\n");
+    mvlib::Logger::getInstance().info("chassis calibrated, pose 0 0 0\n");
   });
 }
 
@@ -112,7 +149,7 @@ void autonomous() {
   uint32_t t0 = pros::millis();
   while (!chassis_ready && pros::millis() - t0 < 3000) pros::delay(10);
   if (!chassis_ready)
-    std::printf("auton: imu not ready after 3 s, going anyway\n");
+    mvlib::Logger::getInstance().warn("auton: imu not ready after 3 s, going anyway\n");
 
   screen::run_selected();
 }

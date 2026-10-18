@@ -1,3 +1,4 @@
+#include "mvlib/api.hpp"
 #include "record.hpp"
 #include "subsystems.hpp"
 
@@ -114,7 +115,7 @@ void dump() {
   put("}");
 
   // also send it down the wire in case a terminal is listening
-  for (int i = 0; i < out_n; i++) std::printf("%s\n", out[i]);
+  for (int i = 0; i < out_n; i++) mvlib::Logger::getInstance().info("%s\n", out[i]);
   std::fflush(stdout);
 }
 
@@ -122,13 +123,13 @@ void stop(const char *why) {
   flush_lift();
   t_len = pros::millis() - t_start;
   on = false;
-  std::printf("rec: %s, %d steps. hit RIGHT+Y to print\n", why, n);
+  mvlib::Logger::getInstance().info("rec: %s, %d steps. hit RIGHT+Y to print\n", why, n);
 }
 
 }
 
 void print_last() {
-  if (n == 0) { std::printf("rec: nothing saved\n"); return; }
+  if (n == 0) { mvlib::Logger::getInstance().warn("rec: nothing saved\n"); return; }
   dump();
 }
 
@@ -159,7 +160,7 @@ void toggle() {
   last_lift = last_intake = last_spin = 0;
   lift_started = 0;
   on = true;
-  std::printf("rec: go\n");
+  mvlib::Logger::getInstance().info("rec: go\n");
 }
 
 void update(int lift_cmd, int intake_cmd, int spin_cmd) {
