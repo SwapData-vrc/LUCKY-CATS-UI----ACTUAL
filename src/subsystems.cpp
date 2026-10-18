@@ -73,8 +73,9 @@ int g_position = 0;      // which of the three we were last told to go to
 double g_target = 0;     // CLAW_POS[g_position], in motor degrees
 uint32_t g_started = 0;  // when that move was commanded
 bool g_holding = false;  // has it stopped moving and latched a reference yet
-int g_homing = 0;        // 0 off, 1 moving, 2 settling
-uint32_t g_home_until = 0;
+int g_homing = 0;        // 0 off, 1 pushing down, 2 settling
+uint32_t g_home_until = 0, g_home_started = 0;
+double g_home_raw = 0;   // what the encoder read at the stop, before we zero
 double g_hold_angle = 0; // rotation sensor reading when it stopped, degrees
 
 // The claw angle from the rotation sensor on port 1, which counts in
@@ -113,11 +114,15 @@ bool claw_sensor_dead() {
 } // namespace
 
 int claw_at() { return g_position; }
+double claw_home_raw() { return g_home_raw; }
 
 void claw_home() {
+  // push down against the hard stop. a position target is no good here -- the
+  // encoder is exactly what we do not trust, which is why we are re-homing.
   g_homing = 1;
-  g_home_until = pros::millis() + CLAW_HOME_GIVEUP_MS;
-  claw_pivot.move_absolute(CLAW_POS[0] + CLAW_HOME_PAST, CLAW_SPEED);
+  g_home_started = pros::millis();
+  g_home_until = g_home_started + CLAW_HOME_GIVEUP_MS;
+  claw_pivot.move(CLAW_HOME_PUSH);
 }
 
 void spinclaw(int position) {
@@ -135,23 +140,28 @@ void spinclaw(int position) {
 
 
 void claw_update() {
-  // re-home: drive past pos 0, let it settle, then call that spot pos 0
+  // re-home: lean on the stop til it quits moving, then re-zero off it
   if (g_homing == 1) {
-    double want = CLAW_POS[0] + CLAW_HOME_PAST;
-    bool there = std::fabs(claw_pivot.get_position() - want) < 15;
-    if (there || pros::millis() > g_home_until) {
+    uint32_t now = pros::millis();
+    bool spun_up = now - g_home_started > CLAW_HOME_MIN_MS;
+    bool stalled = std::fabs(claw_pivot.get_actual_velocity()) < 5;
+
+    if ((spun_up && stalled) || now > g_home_until) {
+      claw_pivot.move(0);
       g_homing = 2;
-      g_home_until = pros::millis() + CLAW_HOME_SETTLE_MS;
+      g_home_until = now + CLAW_HOME_SETTLE_MS;
     }
     return;
   }
   if (g_homing == 2) {
     if (pros::millis() < g_home_until) return;
-
-    claw_pivot.move(0);
-    claw_pivot.set_zero_position(CLAW_POS[0]); // here is pos 0 now
     g_homing = 0;
 
+    // what the stop reads in the current frame. this IS the offset we need:
+    // show it on the screen so it can be read off instead of guessed at.
+    g_home_raw = claw_pivot.get_position();
+
+    claw_pivot.set_zero_position(CLAW_STOP_READS);
     g_position = 0;
     g_target = CLAW_POS[0];
     g_holding = true;

@@ -50,12 +50,12 @@ struct Routine {
 };
 
 const Routine ROUTINES[] = {
+   {"30pts", auton::thirty_pts},
+    {"58_skills", auton::skills58},
     {"Skills", auton::skills},
-  {"30pts", auton::thirty_pts},
-
-    
+   
+    {"20pts", auton::twenty_pts},
     {"Test", auton::test},
-    
 };
 constexpr int COUNT = static_cast<int>(sizeof(ROUTINES) / sizeof(ROUTINES[0]));
 
@@ -186,9 +186,10 @@ void sample() {
   if (g_pose != nullptr) {
     // L is the lift in motor degrees
     char buf[48];
-    std::snprintf(buf, sizeof(buf), "X%5.1f Y%5.1f H%4.0f %s%d",
+    std::snprintf(buf, sizeof(buf), "X%5.1f Y%5.1f H%4.0f %s%d S%.0f",
                   p.x, p.y, p.theta,
-                  record::active() ? "REC" : "R", record::count());
+                  record::active() ? "REC" : "R", record::count(),
+                  claw_home_raw());
     lv_label_set_text(g_pose, buf);
   }
 
@@ -245,7 +246,10 @@ void paint() {
   }
 
   if (g_state != nullptr) {
-    lv_label_set_text(g_state, live ? "DRIVING" : (g_pts_n > 1 ? "LAST RUN" : "READY"));
+    lv_label_set_text(g_state, !chassis_ready
+                                   ? "CALIBRATING"
+                                   : (live ? "DRIVING"
+                                           : (g_pts_n > 1 ? "LAST RUN" : "READY")));
     lv_obj_set_style_text_color(g_state, lv_color_hex(live ? ink::WARN : ink::DIM), LV_PART_MAIN);
   }
   if (g_dot != nullptr)
@@ -347,6 +351,9 @@ void pump(void*) {
     }
     // lvgl is not thread safe, so the code view is drawn here and nowhere else
     if (g_code_req > 0) { g_code_req = 0; draw_code_page(); }
+
+    static bool was_running = false;
+    if (g_running != was_running) { was_running = g_running; paint(); }
 
     ++tick;
     lv_timer_handler();
@@ -557,6 +564,11 @@ bool running() { return g_running; }
 
 
 void show_code_page() { g_code_req = 1; }
+
+// The field kills the auton task mid route, so run_selected never reaches the
+// line that clears g_running and opcontrol sits there skipping everything.
+// Called at the top of opcontrol: if we are in opcontrol, no route is running.
+void clear_running() { g_running = false; }
 
 const char* selected_name() { return ROUTINES[g_selected].name; }
 

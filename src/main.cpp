@@ -107,7 +107,13 @@ void disabled() {
 void competition_initialize() {}
 
 void autonomous() {
-  while (!chassis_ready) pros::delay(10);
+  // dont sit here forever waiting on the imu. if calibration is stuck, a route
+  // running on drive encoders alone still beats not moving at all.
+  uint32_t t0 = pros::millis();
+  while (!chassis_ready && pros::millis() - t0 < 3000) pros::delay(10);
+  if (!chassis_ready)
+    std::printf("auton: imu not ready after 3 s, going anyway\n");
+
   screen::run_selected();
 }
 
@@ -117,6 +123,10 @@ void opcontrol() {
   // The field kills the autonomous task, but LemLib's chassis task does not
   // know that and would keep driving its last motion into the driver period.
   chassis.cancelAllMotions();
+
+  // Same reason: a route cut off by the field never clears its running flag,
+  // and the guard below would skip driving and every macro until a restart.
+  screen::clear_running();
 
   // Coast is what the drivers want under the sticks. Routes want brake, and
   // swap back and forth below -- see route_owns_drive.

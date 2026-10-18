@@ -1,4 +1,5 @@
 #include "autons.hpp"
+#include "lemlib/chassis/chassis.hpp"
 #include "pros/rtos.hpp"
 #include "subsystems.hpp"
 
@@ -47,8 +48,6 @@ void skills() {
 
 
 
-
-  
   chassis.setPose(0, 0, 0);
   intake.move(127);
   claw_spin.move(-127);
@@ -57,36 +56,38 @@ void skills() {
   chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
   chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
   spinclaw(1);
-  chassis.moveToPoint(-24, -9.8, 4000, {.forwards = false, .minSpeed = 100},
+  chassis.moveToPoint(-24, -9.8, 1300, {.forwards = false, .minSpeed = 100},
                       false);
   claw_spin.move(127);
-  pros::delay(700);
-  chassis.setPose(0, 0, 0);
+  pros::delay(650);
+  
   spinclaw(2);
+   pros::delay(100);
+  chassis.setPose(0,0,0);
   pros::delay(50);
   claw_spin.move(-127);
   chassis.moveToPoint(0, 10.3, 650, {.maxSpeed = 100}, false);
-  chassis.turnToHeading(-146, 300, {.maxSpeed = 127}, false);
+  chassis.turnToHeading(-139, 300, {.maxSpeed = 127}, false);
   chassis.setPose(-5, 0, 0);
   // exits 1 in short so the turn does not spike at the point
-  chassis.moveToPoint(0, -12, 1250,
+  chassis.moveToPoint(0, -15, 1410,
                       {.forwards = false, .maxSpeed = 30, .minSpeed = 10,
                        .earlyExitRange = 1},
                       true);
-  chassis.waitUntil(8);
+  chassis.waitUntil(12);
   spinclaw(0);
   pros::delay(700);
   spinclaw(1);
 
   chassis.waitUntilDone();
   chassis.setPose(0, 0, 0);
-  pros::delay(100);
-  chassis.turnToHeading(130, 500, {.maxSpeed = 127}, false);
-lift.move_absolute(700, 127);
-pros::delay(100);
+  lift.move_absolute(750, 127);
+pros::delay(150);
+  chassis.turnToHeading(127, 500, {.maxSpeed = 127}, false);
+
   chassis.setPose(0, 0, 0);
 
-  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .minSpeed = 80}, false);
+  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .maxSpeed = 90}, false);
   lift.move_absolute(300, 127);
 
   claw_spin.move(127);
@@ -95,9 +96,9 @@ pros::delay(100);
 lift.move_absolute(900, 127);
 pros::delay(800);
   chassis.setPose(0, 0, 0);
-  chassis.moveToPoint(0, 15, 600, { .minSpeed = 80}, false);
+  chassis.moveToPoint(0, 24, 600, { .minSpeed = 80}, false);
   
-  chassis.turnToHeading(-38, 500, {.maxSpeed = 127}, false);
+  chassis.turnToHeading(-39.3, 500, {.maxSpeed = 127}, false);
 chassis.setPose(0, 0, 0);
   lift.move(-127);
   pros::delay(400);
@@ -119,15 +120,24 @@ claw_spin.move(-127);
 
   chassis.waitUntilDone();
   chassis.setPose(0, 0, 0);
+   lift.move_absolute(1200, 127);
+  pros::delay(300);
   chassis.turnToHeading(130, 600, {.maxSpeed = 127}, false);
-  lift.move_absolute(1000, 127);
+ 
   chassis.setPose(0, 0, 0);
   
   chassis.moveToPoint(0, -25, 1250, {.forwards = false, .minSpeed = 80}, false);
   lift.move_absolute(700,127);
   claw_spin.move(127);
   pros::delay(200);
-    lift.move_absolute(1000,127);
+    lift.move_absolute(1200,127);
+
+
+
+   chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(127);
+    chassis.turnToHeading(32, 600, {.maxSpeed = 127}, false);
 
 
 
@@ -136,34 +146,35 @@ claw_spin.move(-127);
   claw_spin.move(-127);
 spinclaw(2);
   
-  chassis.moveToPoint(6, 27, 1572, {}, false);
+  chassis.moveToPoint(6, 25.5, 2272, {}, false);
   lift.move_absolute(0, 127);
     spinclaw(0);
+
+
   chassis.turnToHeading(90, 600, {}, false);
 
-   chassis.moveToPoint(23, 27, 1572, {}, false);
+   chassis.moveToPoint(25, 25.5, 1972, {}, false);
    chassis.waitUntil(14);
-     chassis.turnToHeading(92, 50, {}, false);
-    chassis.turnToHeading(88, 50, {}, false);
+   
     intake.move(127);
-       chassis.moveToPoint(22, 27, 1572, {}, false);
-       pros::delay(300);
+  
+       chassis.moveToPoint(24, 25.5, 1572, {}, false);
+       pros::delay(500);
        
-  chassis.moveToPoint(6, 27, 1572, {.forwards = false}, false);
+  chassis.moveToPoint(6, 25.5, 1572, {.forwards = false}, false);
    spinclaw(1);
-  lift.move_absolute(1900, 127);
+  lift.move_absolute(2600, 127);
+  pros::delay(200);
   chassis.turnToHeading(-6, 600, {}, false);
  
             chassis.moveToPoint(0, -3, 1772, {.forwards = false, .maxSpeed = 80}, false);
              chassis.turnToHeading(0, 50, {}, false);
-             lift.move_absolute(1300, 127);
-             pros::delay(90);
+             lift.move_absolute(1800, 127);
              claw_spin.move(127);
              pros::delay(700);
              
             
-               lift.move_absolute(2200, 127);
-               pros::delay(50);
+               lift.move_absolute(2600, 127);
                claw_spin.move(-127);
                spinclaw(2);
 
@@ -176,24 +187,24 @@ spinclaw(2);
 
 
                
-  chassis.moveToPoint(6, 27.3, 1572, {}, false);
+  chassis.moveToPoint(6, 28.1, 1572, {}, false);
   lift.move_absolute(0, 127);
     spinclaw(0);
   chassis.turnToHeading(90, 600, {}, false);
 
-   chassis.moveToPoint(23, 27.3, 1572, {}, false);
+   chassis.moveToPoint(23, 28.1, 1572, {}, false);
    chassis.waitUntil(14);
      chassis.turnToHeading(92, 50, {}, false);
     chassis.turnToHeading(88, 50, {}, false);
-       chassis.moveToPoint(22, 27.3, 1572, {}, false);
-       pros::delay(100);
+       chassis.moveToPoint(22, 28.1, 1572, {}, false);
+       pros::delay(900);
 lift.move_absolute(0, 127);
 
 
        chassis.setPose(0,0,0);
-           chassis.turnToPoint(-6,35,600,{}, false);
+           chassis.turnToPoint(-9,35,600,{}, false);
            spinclaw(1);
-           chassis.moveToPoint(6, -35, 2572, {.forwards = false, .maxSpeed = 80}, false);
+           chassis.moveToPoint(9, -35, 2572, {.forwards = false, .maxSpeed = 80}, false);
            chassis.waitUntil(20);
             
             
@@ -208,12 +219,14 @@ lift.move_absolute(0, 127);
 
 //goal 2 first score
                 
-   chassis.moveToPoint(0, 0, 1572, {}, false);
+   chassis.moveToPoint(4, 2, 1572, {}, false);
+  
    chassis.waitUntil(4);
      chassis.turnToHeading(2, 50, {}, false);
     chassis.turnToHeading(-2, 50, {}, false);
        chassis.moveToPoint(0, -1, 1572, {}, false);
-       pros::delay(100);
+       chassis.setPose(0,0,0);
+       pros::delay(1100);
 lift.move_absolute(0, 127);
 
 
@@ -221,10 +234,10 @@ lift.move_absolute(0, 127);
 
 
 
-          chassis.turnToPoint(-6,35,600,{}, false);
+          chassis.turnToPoint(-9,35,600,{}, false);
        spinclaw(1);
          lift.move_absolute(800,127);
-           chassis.moveToPoint(6, -35, 2572, {.forwards = false, .maxSpeed = 70}, false);
+           chassis.moveToPoint(9, -35, 2572, {.forwards = false, .maxSpeed = 70}, false);
            chassis.waitUntil(20);
              
          
@@ -235,9 +248,8 @@ lift.move_absolute(0, 127);
               claw_spin.move(127);
               pros::delay(800);
               lift.move_absolute(800,127);
-              pros::delay(100);
               spinclaw(2);
-              chassis.moveToPoint(-3, -15, 1772, {}, false);
+              chassis.moveToPoint(-3, -9, 1772, {}, false);
               spinclaw(0);
                 chassis.turnToHeading(0, 100, {}, false);
 lift.move_absolute(0,127);
@@ -250,12 +262,13 @@ lift.move_absolute(0,127);
      chassis.turnToHeading(2, 50, {}, false);
     chassis.turnToHeading(-2, 50, {}, false);
        chassis.moveToPoint(0, -1, 1572, {}, false);
-       pros::delay(800);
+       pros::delay(1500);
 lift.move_absolute(0, 127);
-    chassis.turnToPoint(-6,35,600,{}, false);
+    chassis.turnToPoint(-9,35,600,{}, false);
   spinclaw(1);
      lift.move_absolute(1400,127);
-           chassis.moveToPoint(6, -35, 2572, {.forwards = false, .maxSpeed = 70}, false);
+     pros::delay(400);
+           chassis.moveToPoint(9, -35, 2572, {.forwards = false, .maxSpeed = 70}, false);
            chassis.waitUntil(20);
         
            
@@ -265,9 +278,8 @@ lift.move_absolute(0, 127);
               claw_spin.move(127);
               pros::delay(800);
               lift.move_absolute(1400,127);
-              pros::delay(100);
               spinclaw(2);
-              chassis.moveToPoint(-3, -15, 1772, {}, false);
+              chassis.moveToPoint(-3, -9, 1772, {}, false);
              spinclaw(0);
               chassis.turnToHeading(0, 100, {}, false);
 lift.move_absolute(0,127);
@@ -284,24 +296,24 @@ lift.move_absolute(0,127);
      chassis.turnToHeading(2, 50, {}, false);
     chassis.turnToHeading(-2, 50, {}, false);
        chassis.moveToPoint(0, -1, 1572, {}, false);
-       pros::delay(800);
+       pros::delay(1500);
 lift.move_absolute(0, 127);
-    chassis.turnToPoint(-6,35,600,{}, false);
+    chassis.turnToPoint(-9,35,600,{}, false);
   spinclaw(1);
      lift.move_absolute(1900,127);
-           chassis.moveToPoint(6, -35, 2572, {.forwards = false, .maxSpeed = 70}, false);
+           chassis.moveToPoint(9, -35, 2572, {.forwards = false, .maxSpeed = 70}, false);
            chassis.waitUntil(20);
         
            
             
             
               lift.move_absolute(1400, 127);
+              pros::delay(400);
               claw_spin.move(127);
               pros::delay(800);
               lift.move_absolute(1900,127);
-              pros::delay(100);
               spinclaw(2);
-              chassis.moveToPoint(-3, -15, 1772, {}, false);
+              chassis.moveToPoint(-3,9, 1772, {}, false);
              spinclaw(0);
               chassis.turnToHeading(0, 100, {}, false);
 lift.move_absolute(0,127);
@@ -455,49 +467,10 @@ void test() {
   chassis.turnToHeading(0, 2000, {}, false);
 }
 
-// 30pts -- scoring routine. Empty on purpose: the motions have not been
-// decided yet, and a half-guessed auton is worse than one that does nothing.
-void thirty_pts() {
-lift.move_absolute(-10,127);
-/*
-  chassis.setPose(0, 0, 0);
-  intake.move(127);
-  claw_spin.move(-127);
-  chassis.moveToPoint(0, -3, 400, {.forwards = false, .minSpeed = 70}, false);
-  chassis.moveToPoint(0, 5, 650, {.minSpeed = 100}, false);
-  chassis.moveToPoint(0, -3, 250, {.forwards = false, .minSpeed = 70}, false);
-  chassis.moveToPoint(0, 5, 650, {.minSpeed = 100}, false);
-  spinclaw(1);
-chassis.setPose(0, 0, 0);
-   chassis.turnToHeading(45,300, {}, false);
-  chassis.moveToPoint(-13, -15, 882, {.forwards = false}, false);
-  
-  chassis.moveToPoint(-16.8, -17.8, 122, {.forwards = false}, false);
 
+// 58_skills
+void skills58() {
 
-  claw_spin.move(127);
-  pros::delay(300);
-  spinclaw(2);
-  pros::delay(100);
-  claw_spin.move(-127);
-  chassis.setPose(0,0,0);
-    chassis.moveToPoint(-2, 10.6, 450, {.minSpeed = 100}, false);
-chassis.turnToHeading(-30, 200, {}, false);
-
-    chassis.moveToPoint(8, 12.6, 500, {.forwards = false, .maxSpeed = 100}, false);
-    spinclaw(0);
-    pros::delay(400);
-    spinclaw(1);
-    lift.move(400);
-    chassis.moveToPoint(-5, -5, 850, {.forwards = false, .maxSpeed = 100}, false);
-
-
-*/
-
-
-
-
-  
   chassis.setPose(0, 0, 0);
   intake.move(127);
   claw_spin.move(-127);
@@ -506,36 +479,38 @@ chassis.turnToHeading(-30, 200, {}, false);
   chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
   chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
   spinclaw(1);
-  chassis.moveToPoint(-24, -9.8, 4000, {.forwards = false, .minSpeed = 100},
+  chassis.moveToPoint(-24, -9.8, 1300, {.forwards = false, .minSpeed = 100},
                       false);
   claw_spin.move(127);
-  pros::delay(700);
-  chassis.setPose(0, 0, 0);
+  pros::delay(650);
+  
   spinclaw(2);
+   pros::delay(100);
+  chassis.setPose(0,0,0);
   pros::delay(50);
   claw_spin.move(-127);
   chassis.moveToPoint(0, 10.3, 650, {.maxSpeed = 100}, false);
-  chassis.turnToHeading(-146, 300, {.maxSpeed = 127}, false);
+  chassis.turnToHeading(-139, 300, {.maxSpeed = 127}, false);
   chassis.setPose(-5, 0, 0);
   // exits 1 in short so the turn does not spike at the point
-  chassis.moveToPoint(0, -12, 1250,
+  chassis.moveToPoint(0, -15, 1410,
                       {.forwards = false, .maxSpeed = 30, .minSpeed = 10,
                        .earlyExitRange = 1},
                       true);
-  chassis.waitUntil(8);
+  chassis.waitUntil(12);
   spinclaw(0);
   pros::delay(700);
   spinclaw(1);
 
   chassis.waitUntilDone();
   chassis.setPose(0, 0, 0);
-  pros::delay(100);
-  chassis.turnToHeading(130, 500, {.maxSpeed = 127}, false);
-lift.move_absolute(700, 127);
-pros::delay(100);
+  lift.move_absolute(750, 127);
+pros::delay(150);
+  chassis.turnToHeading(127, 500, {.maxSpeed = 127}, false);
+
   chassis.setPose(0, 0, 0);
 
-  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .minSpeed = 80}, false);
+  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .maxSpeed = 90}, false);
   lift.move_absolute(300, 127);
 
   claw_spin.move(127);
@@ -544,9 +519,9 @@ pros::delay(100);
 lift.move_absolute(900, 127);
 pros::delay(800);
   chassis.setPose(0, 0, 0);
-  chassis.moveToPoint(0, 15, 600, { .minSpeed = 80}, false);
+  chassis.moveToPoint(0, 24, 600, { .minSpeed = 80}, false);
   
-  chassis.turnToHeading(-38, 500, {.maxSpeed = 127}, false);
+  chassis.turnToHeading(-39.3, 500, {.maxSpeed = 127}, false);
 chassis.setPose(0, 0, 0);
   lift.move(-127);
   pros::delay(400);
@@ -568,16 +543,292 @@ claw_spin.move(-127);
 
   chassis.waitUntilDone();
   chassis.setPose(0, 0, 0);
+   lift.move_absolute(1200, 127);
+  pros::delay(300);
   chassis.turnToHeading(130, 600, {.maxSpeed = 127}, false);
-  lift.move_absolute(1000, 127);
+ 
   chassis.setPose(0, 0, 0);
   
   chassis.moveToPoint(0, -25, 1250, {.forwards = false, .minSpeed = 80}, false);
   lift.move_absolute(700,127);
   claw_spin.move(127);
   pros::delay(200);
-    lift.move_absolute(1000,127);
+    lift.move_absolute(1200,127);
+
+
+
+   chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(127);
+    chassis.turnToHeading(20, 600, {.maxSpeed = 127}, false);
+  //yadda yadda
+    chassis.turnToHeading(45, 600, {.maxSpeed = 127}, false);
+
+
+
+   chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(-127);
+spinclaw(2);
   
+
+
+
+  chassis.moveToPoint(0, 15, 2272, {}, false);
+  
+  chassis.turnToHeading(180, 900, {}, false);
+  
+  lift.move_absolute(0, 127);
+    spinclaw(0);
+  chassis.moveToPoint(0, 55, 2272, {.forwards = false}, false);
+chassis.setPose(0,30,180);
+
+
+
+   chassis.moveToPoint(0, 25.7, 1972, {}, false);
+
+
+
+  chassis.turnToHeading(75, 600, {}, false);
+
+   chassis.moveToPoint(26, 25.7, 1972, {}, false);
+   chassis.waitUntil(14);
+   
+    intake.move(127);
+  
+       chassis.moveToPoint(24, 25.7, 1572, {}, false);
+       pros::delay(500);
+       
+  chassis.moveToPoint(6, 26.2, 1572, {.forwards = false}, false);
+   spinclaw(1);
+  lift.move_absolute(2600, 127);
+  pros::delay(200);
+  chassis.turnToHeading(0, 600, {}, false);
+ 
+            chassis.moveToPoint(0, -1, 2972, {.forwards = false, .maxSpeed = 60}, false);
+             chassis.turnToHeading(0, 50, {}, false);
+             lift.move_absolute(1800, 127);
+             claw_spin.move(127);
+             pros::delay(700);
+             
+            
+               lift.move_absolute(2600, 127);
+               claw_spin.move(-222127);
+               spinclaw(2);
+               chassis.setPose(0,0,0);
+                   chassis.turnToHeading(32, 150, {}, false);
+               //end last goal 1 score
+        chassis.setPose(0,0,0);
+
+
+   
+
+
+
+               
+  chassis.moveToPoint(6, 27.5, 1572, {}, false);
+  lift.move_absolute(0, 127);
+    spinclaw(0);
+  chassis.turnToHeading(90, 600, {}, false);
+
+   chassis.moveToPoint(27, 28.1, 1572, {}, false);
+   chassis.waitUntil(14);
+     chassis.turnToHeading(92, 50, {}, false);
+    chassis.turnToHeading(88, 50, {}, false);
+       chassis.moveToPoint(22, 28.1, 1572, {}, false);
+       pros::delay(900);
+lift.move_absolute(0, 127);
+
+
+       chassis.setPose(0,0,0);
+           chassis.turnToPoint(-9,35,600,{}, false);
+           spinclaw(1);
+           chassis.moveToPoint(9, -35, 2572, {.forwards = false, .maxSpeed = 80}, false);
+           chassis.waitUntil(20);
+            
+            
+           
+             
+              claw_spin.move(127);
+              pros::delay(200);
+              spinclaw(2);
+              chassis.moveToPoint(0, -10, 1772, {}, false);
+              spinclaw(0);
+                chassis.turnToHeading(0, 100, {}, false);
+                claw_spin.move(-127);
+
+//goal 2 first score
+
+chassis.moveToPoint(0, 0, 1772, {}, false);
+intake.move(127);
+pros::delay(600);
+
+chassis.moveToPoint(0, -7, 1772, {.forwards = false}, false);
+spinclaw(1);
+chassis.turnToPoint(-72, 72, 1100, {}, false);
+chassis.moveToPoint(72, -72, 3772, {.forwards = false}, false);
+lift.move_absolute(1300, 127);
+pros::delay(100);
+chassis.moveToPoint(0, -7, 3772, {.forwards = false}, false);
+lift.move_absolute(600, 127);
+pros::delay(400);
+chassis.turnToHeading(-90, 600, {}, false);
+chassis.setPose(0,0,0);
+chassis.moveToPoint(0, 68, 2772, {}, false);
+chassis.setPose(0,0,0);
+  chassis.moveToPoint(0, 6, 450, {.minSpeed = 100}, false);
+  chassis.moveToPoint(0, 2, 400, {.forwards = false, .minSpeed = 70}, false);
+  chassis.moveToPoint(0, 6, 450, {.minSpeed = 100}, false);
+  chassis.moveToPoint(0, 2, 400, {.forwards = false, .minSpeed = 70}, false);
+  chassis.moveToPoint(0, -68, 2872, {.forwards = false}, false);
+}
+
+void twenty_pts() {
+  
+
+  chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(-127);
+  chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
+  chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
+  chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
+  chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
+  spinclaw(1);
+  chassis.moveToPoint(24, -9.8, 1300, {.forwards = false, .minSpeed = 100},
+                      false);
+  claw_spin.move(127);
+  pros::delay(550);
+  
+  spinclaw(2);
+  
+  chassis.moveToPoint(0, -24, 900, { .minSpeed = 100},
+                      false);
+  claw_spin.move(-127);
+    chassis.moveToPoint(-19, -43, 2000, {.forwards = false, .maxSpeed = 60, .earlyExitRange = 1},
+                      false);
+                      
+  chassis.waitUntil(13);
+  spinclaw(0);
+  pros::delay(700);
+  spinclaw(1);
+  chassis.waitUntilDone();
+  lift.move_absolute(1000, 127);
+pros::delay(300);
+    chassis.moveToPoint(-24, -31, 1800, {.forwards = false, .maxSpeed = 110, .earlyExitRange = 1},
+                      false);
+       
+     lift.move_absolute(700, 127);
+                    claw_spin.move(127);
+                    pros::delay(300);
+                    
+  lift.move_absolute(1100, 127);
+  pros::delay(300);
+  chassis.setPose(0, 0, 0);
+    chassis.moveToPoint(0, 6, 180, {},
+                      false);
+                        lift.move_absolute(0, 127);
+                         pros::delay(300);
+                         claw_spin.move(-127);
+                         spinclaw(2);
+
+
+}
+
+// 30pts -- scoring routine. Empty on purpose: the motions have not been
+// decided yet, and a half-guessed auton is worse than one that does nothing.
+void thirty_pts() {
+
+  
+  chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(-127);
+  chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
+  chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
+  chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
+  chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
+  spinclaw(1);
+  chassis.moveToPoint(-24, -9.8, 1300, {.forwards = false, .minSpeed = 100},
+                      false);
+  claw_spin.move(127);
+  pros::delay(650);
+  
+  spinclaw(2);
+   pros::delay(100);
+  chassis.setPose(0,0,0);
+  pros::delay(50);
+  claw_spin.move(-127);
+  chassis.moveToPoint(0, 10.3, 650, {.maxSpeed = 100}, false);
+  chassis.turnToHeading(-139, 300, {.maxSpeed = 127}, false);
+  chassis.setPose(-5, 0, 0);
+  // exits 1 in short so the turn does not spike at the point
+  chassis.moveToPoint(0, -15, 1410,
+                      {.forwards = false, .maxSpeed = 30, .minSpeed = 10,
+                       .earlyExitRange = 1},
+                      true);
+  chassis.waitUntil(12);
+  spinclaw(0);
+  pros::delay(700);
+  spinclaw(1);
+
+  chassis.waitUntilDone();
+  chassis.setPose(0, 0, 0);
+  lift.move_absolute(750, 127);
+pros::delay(150);
+  chassis.turnToHeading(127, 500, {.maxSpeed = 127}, false);
+
+  chassis.setPose(0, 0, 0);
+
+  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .maxSpeed = 90}, false);
+  lift.move_absolute(300, 127);
+
+  claw_spin.move(127);
+  pros::delay(200);
+
+lift.move_absolute(900, 127);
+pros::delay(800);
+  chassis.setPose(0, 0, 0);
+  chassis.moveToPoint(0, 24, 600, { .minSpeed = 80}, false);
+  
+  chassis.turnToHeading(-39.3, 500, {.maxSpeed = 127}, false);
+chassis.setPose(0, 0, 0);
+  lift.move(-127);
+  pros::delay(400);
+  lift.brake();
+ 
+
+spinclaw(2);
+
+
+claw_spin.move(-127);
+  chassis.moveToPoint(0, -35, 2380,
+                      {.forwards = false, .maxSpeed = 60, .minSpeed = 10,
+                       .earlyExitRange = 1},
+                      true);
+  chassis.waitUntil(27.5);
+  spinclaw(0);
+  pros::delay(700);
+  spinclaw(1);
+
+  chassis.waitUntilDone();
+  chassis.setPose(0, 0, 0);
+   lift.move_absolute(1300, 127);
+  pros::delay(500);
+  chassis.turnToHeading(130, 600, {.maxSpeed = 127}, false);
+ 
+  chassis.setPose(0, 0, 0);
+  
+  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .minSpeed = 80}, false);
+  lift.move_absolute(950,127);
+  claw_spin.move(127);
+  pros::delay(200);
+    lift.move_absolute(1600,127);
+pros::delay(500);
+
+
+   chassis.setPose(0, 0, 0);
+  intake.move(127);
+  claw_spin.move(127);
+    chassis.turnToHeading(20, 600, {.maxSpeed = 127}, false);
 }
 
 } // namespace auton
