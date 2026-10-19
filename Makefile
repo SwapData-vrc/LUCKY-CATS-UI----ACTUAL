@@ -95,3 +95,8 @@ LNK_FLAGS=--gc-sections --start-group \
 	-lgcc -lstdc++ --end-group \
 	-T$(FWDIR)/v5-common.ld --no-warn-rwx-segments \
 	--sort-section=alignment --sort-common
+
+# EZ-Template's unit literals (_in, _deg, _ms) are okapi::RQuantity templates,
+# which live entirely in headers -- no okapi library code is referenced, so the
+# archive is not linked. The headers under include/okapi are all that is needed.
+LIBRARIES:=$(filter-out $(FWDIR)/okapilib.a,$(LIBRARIES))

@@ -10,3 +10,4 @@ void twenty_pts();
 void thirty_pts();
 void skills();
 }
+namespace auton {}

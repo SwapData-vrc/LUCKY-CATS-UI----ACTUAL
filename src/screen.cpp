@@ -57,7 +57,11 @@ const Routine ROUTINES[] = {
    
     {"20pts", auton::twenty_pts},
     {"Test", auton::test},
+    // Add routines in autons.cpp, declare them in autons.hpp, then list them
+    // here. The selector draws one row per entry.
+    {"No routines", nullptr},
 };
+
 constexpr int COUNT = static_cast<int>(sizeof(ROUTINES) / sizeof(ROUTINES[0]));
 
 int g_selected = 0;
@@ -176,7 +180,7 @@ void trail_clear() {
 }
 
 void sample() {
-  const lemlib::Pose p = chassis.getPose();
+  const ez::pose p = chassis.odom_pose_get();
   const lv_coord_t x = px_x(static_cast<float>(p.x));
   const lv_coord_t y = px_y(static_cast<float>(p.y));
 
@@ -348,6 +352,7 @@ void pump(void*) {
     // poses than as a memory of the robot moving.
     if (g_running && (tick % 12) == 0) {
       const lemlib::Pose p = chassis.getPose();
+      const ez::pose p = chassis.odom_pose_get();
       mvlib::Logger::getInstance().info("  ..     X %.1f  Y %.1f  H %.0f\n", p.x, p.y, p.theta);
     }
     // lvgl is not thread safe, so the code view is drawn here and nowhere else
@@ -503,21 +508,23 @@ void run_selected() {
   paint();
 
   const lemlib::Pose before = chassis.getPose();
+  const ez::pose before = chassis.odom_pose_get();
   mvlib::Logger::getInstance().info("auton: running %s\n", ROUTINES[g_selected].name);
   mvlib::Logger::getInstance().info("  start  X %.1f  Y %.1f  H %.0f\n", before.x, before.y, before.theta);
 
   const uint32_t t0 = pros::millis();
   if (ROUTINES[g_selected].run != nullptr) ROUTINES[g_selected].run();
 
-  // Every LemLib motion defaults to async = true, so a routine whose last
-  // motion was written without the trailing `false` returns while the robot is
-  // still driving. The moment this function returns, g_running goes false and
-  // opcontrol takes the drive back -- arcade(0, 0) lands on the motors within
-  // 25 ms and the last motion of the route dies partway there. Waiting here
-  // means the route finishes the motion it asked for either way.
-  chassis.waitUntilDone();
+  // Every EZ-Template motion is asynchronous, so a routine whose last motion
+  // was written without a trailing pid_wait() returns while the robot is still
+  // driving. The moment this function returns, g_running goes false and
+  // opcontrol takes the drive back -- drive_set(0, 0) lands on the motors
+  // within 25 ms and the last motion of the route dies partway there. Waiting
+  // here means the route finishes the motion it asked for either way.
+  chassis.pid_wait();
 
   const lemlib::Pose after = chassis.getPose();
+  const ez::pose after = chassis.odom_pose_get();
   mvlib::Logger::getInstance().info("  end    X %.1f  Y %.1f  H %.0f  (%lu ms)\n", after.x, after.y,
               after.theta, static_cast<unsigned long>(pros::millis() - t0));
 
@@ -538,10 +545,10 @@ bool request_run() {
     return false;
   }
 
-  // calibrate() zeroes the pose and starts the odometry task. A route that
-  // calls setPose before that finishes has its start position thrown away and
-  // then drives from wherever LemLib believes it is -- which looks exactly
-  // like a route swerving off on its own.
+  // initialize() calibrates the IMU and starts the odometry task. A route that
+  // calls odom_xyt_set before that finishes has its start position thrown away
+  // and then drives from wherever EZ-Template believes it is -- which looks
+  // exactly like a route swerving off on its own.
   if (!chassis_ready) {
     mvlib::Logger::getInstance().warn("run refused: still calibrating -- wait a moment\n");
     return false;
@@ -555,13 +562,20 @@ bool request_run() {
 
 void request_stop() {
   if (!g_running) return;
-  chassis.cancelAllMotions();
+  chassis.pid_targets_reset();
+  chassis.drive_set(0, 0);
   g_running = false;
   paint();
   mvlib::Logger::getInstance().info("run stopped\n");
 }
 
 bool running() { return g_running; }
+
+void clear_running() {
+  if (!g_running) return;
+  g_running = false;
+  paint();
+}
 
 
 void show_code_page() { g_code_req = 1; }

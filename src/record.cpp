@@ -6,7 +6,7 @@
 #include <cstdarg>
 #include <cstdio>
 
-// records what you drive and prints it back as lemlib code
+// records what you drive and prints it back as EZ-Template code
 
 namespace record {
 namespace {
@@ -34,7 +34,7 @@ bool full = false;
 uint32_t t_start = 0, t_len = 0, t_last = 0;
 
 // everything is relative to where you started, same as the hand routes, so it
-// replays from setPose(0,0,0) whichever way the robot is pointing.
+// replays from odom_xyt_set(0, 0, 0) whichever way the robot is pointing.
 double x, y;                 // position in the start frame
 double x_start, y_start, h_start;
 double lx, ly, lh;
@@ -79,7 +79,7 @@ void dump() {
   put("// %d steps, %.1f s", n, t_len / 1000.0);
   if (full) put("// ran out of room at %d", MAX);
   put("void recorded() {");
-  put("  chassis.setPose(0, 0, 0);");
+  put("  chassis.odom_xyt_set(0_in, 0_in, 0_deg);");
 
   double px = 0, py = 0, ph = 0;
 
@@ -101,14 +101,17 @@ void dump() {
     else if (s.kind == 0x74) {
       int ms = std::fabs(wrap(s.h - ph)) * MS_PER_DEG;
       if (ms < MIN_MS) ms = MIN_MS;
-      put("  chassis.turnToHeading(%.0f, %d, {}, false);", s.h, ms);
+      put("  chassis.pid_turn_set(%.0f_deg, TURN_SPEED);", s.h);
+      put("  chassis.pid_wait();");
       ph = s.h;
     }
     else {
       double d = std::hypot(s.x - px, s.y - py);
       int ms = d * MS_PER_IN;
       if (ms < MIN_MS) ms = MIN_MS;
-      put("  chassis.moveToPoint(%.1f, %.1f, %d, {}, false);", s.x, s.y, ms);
+      put("  chassis.pid_odom_set({{%.1f_in, %.1f_in, %.0f_deg}, fwd, DRIVE_SPEED});",
+          s.x, s.y, s.h);
+      put("  chassis.pid_wait();");
       px = s.x; py = s.y; ph = s.h;
     }
   }
@@ -143,7 +146,7 @@ uint32_t elapsed() { return on ? pros::millis() - t_start : t_len; }
 void toggle() {
   if (on) { stop("stopped"); return; }
 
-  lemlib::Pose p = chassis.getPose();
+  ez::pose p = chassis.odom_pose_get();
   x_start = p.x;
   y_start = p.y;
   h_start = p.theta;
@@ -172,7 +175,7 @@ void update(int lift_cmd, int intake_cmd, int spin_cmd) {
   t_last = now;
 
   // where we are now, turned into "from where we started" coords
-  lemlib::Pose p = chassis.getPose();
+  ez::pose p = chassis.odom_pose_get();
   double dx = p.x - x_start;
   double dy = p.y - y_start;
   double r = h_start * PI / 180.0;

@@ -1,6 +1,7 @@
 #include "main.h"
 #include "mvlib/api.hpp"
 #include "mvlib/Optional/lemlib.hpp"
+#include "mvlib/Optional/ezTemplate.hpp"
 #include "record.hpp"
 #include "screen.hpp"
 #include "subsystems.hpp"
@@ -59,6 +60,7 @@ void initialize() {
   auto &mv = mvlib::Logger::getInstance();
   mvlib::setOdom(&chassis);
   mv.setRobot({&left_motors, &right_motors}, true);
+  mv.setRobot({&telemetry_left, &telemetry_right}, true);
 
   mv.watch("Battery", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 1000,
            [] { return pros::battery::get_capacity(); });
@@ -67,6 +69,8 @@ void initialize() {
              double hot = 0;
              for (auto t : left_motors.get_temperature_all()) hot = std::fmax(hot, t);
              for (auto t : right_motors.get_temperature_all()) hot = std::fmax(hot, t);
+             for (auto &m : chassis.left_motors) hot = std::fmax(hot, m.get_temperature());
+             for (auto &m : chassis.right_motors) hot = std::fmax(hot, m.get_temperature());
              return hot;
            });
   mv.watch("Lift", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 100,
@@ -100,6 +104,11 @@ void initialize() {
   mv.info("claw       sensor port 13: %s\n",
           claw.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
 
+  // Odometry: the drive encoders carry Y and the sideways tracker carries X.
+  // Port 12's vertical tracker is dead, which is why the drive does that job.
+  chassis.drive_width_set(TRACK_WIDTH);
+  chassis.odom_tracker_back_set(&horizontal_tracker);
+
   // The claw positions are measured from here, so the robot has to be powered
   // on with the lift down and the claw pointing down.
   lift.tare_position();
@@ -107,8 +116,7 @@ void initialize() {
 
   // Brake, not coast: on coast the drive rolls on past where the loop thinks
   // it stopped, and every later step of a route inherits that error.
-  left_motors.set_brake_mode(pros::MotorBrake::brake);
-  right_motors.set_brake_mode(pros::MotorBrake::brake);
+  chassis.drive_brake_set(pros::E_MOTOR_BRAKE_BRAKE);
 
   // Hold, not coast: the lift sinks under its own weight on coast.
   lift.set_brake_mode(pros::MotorBrake::hold);
@@ -122,12 +130,13 @@ void initialize() {
   pros::Task calibrate_task([] {
     // encoders survive a restart
     horizontal_encoder.reset_position();
-    left_motors.tare_position();
-    right_motors.tare_position();
+    chassis.drive_sensor_reset();
 
-    chassis.calibrate();
+    // initialize() calibrates the IMU and starts the odometry task. It is the
+    // EZ-Template equivalent of calibrate(), and like calibrate() it blocks.
+    chassis.initialize();
 
-    chassis.setPose(0, 0, 0);
+    chassis.odom_xyt_set(0_in, 0_in, 0_deg);
 
     chassis_ready = true;
     mvlib::Logger::getInstance().info("chassis calibrated, pose 0 0 0\n");
@@ -135,7 +144,8 @@ void initialize() {
 }
 
 void disabled() {
-  chassis.cancelAllMotions();
+  chassis.pid_targets_reset();
+  chassis.drive_set(0, 0);
   intake.move(0);
   claw_spin.move(0);
   lift.brake();
@@ -157,9 +167,14 @@ void autonomous() {
 void opcontrol() {
   pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-  // The field kills the autonomous task, but LemLib's chassis task does not
+  // The field kills the autonomous task, but EZ-Template's PID task does not
   // know that and would keep driving its last motion into the driver period.
-  chassis.cancelAllMotions();
+  chassis.pid_targets_reset();
+  chassis.drive_set(0, 0);
+
+  // A route killed mid-motion leaves the screen believing it is still running,
+  // and opcontrol would then skip the whole manual block below forever.
+  screen::clear_running();
 
   // Same reason: a route cut off by the field never clears its running flag,
   // and the guard below would skip driving and every macro until a restart.
@@ -167,7 +182,7 @@ void opcontrol() {
 
   // Coast is what the drivers want under the sticks. Routes want brake, and
   // swap back and forth below -- see route_owns_drive.
-  chassis.setBrakeMode(MOTOR_BRAKE_COAST);
+  chassis.drive_brake_set(pros::E_MOTOR_BRAKE_COAST);
 
   // True while a screen-started route has the drive, so the brake mode is
   // swapped exactly once on each edge instead of every 25 ms.
@@ -179,7 +194,7 @@ void opcontrol() {
     // A route started from this screen owns every motor for as long as it
     // runs, so the whole manual block below is skipped. Without this the loop
     // re-commands the motors every 25 ms and undoes whatever the route just
-    // asked for: arcade() fights LemLib for the drive, and intake.move(0),
+    // asked for: drive_set() fights EZ-Template for the drive, and intake.move(0),
     // claw_spin.move(0), lift.brake() and claw_update() wipe out the intake,
     // claw and lift calls in the route within one loop -- which reads as
     // "the drive works but nothing else in my route does".
@@ -192,7 +207,7 @@ void opcontrol() {
       // loop thinks it stopped, and every later step inherits that error --
       // the same reason initialize() sets brake before autonomous().
       if (!route_owns_drive) {
-        chassis.setBrakeMode(MOTOR_BRAKE_BRAKE);
+        chassis.drive_brake_set(pros::E_MOTOR_BRAKE_BRAKE);
         route_owns_drive = true;
       }
 
@@ -207,7 +222,7 @@ void opcontrol() {
 
     // The route just ended, so give the drivers their coast back.
     if (route_owns_drive) {
-      chassis.setBrakeMode(MOTOR_BRAKE_COAST);
+      chassis.drive_brake_set(pros::E_MOTOR_BRAKE_COAST);
       route_owns_drive = false;
       holding = false; // whatever heading was latched before the route is stale
       lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
@@ -226,10 +241,10 @@ void opcontrol() {
     // Any turn input at all hands steering straight back, on the same loop.
     // cheap checks first, saves a port read when hold cant kick in anyway
     const bool want_hold = HEADING_HOLD && chassis_ready && rightX == 0 && leftY != 0;
-    const double now = want_hold ? imu.get_heading() : 0.0;
+    const double now = want_hold ? chassis.drive_imu_get() : 0.0;
     if (want_hold && std::isfinite(now)) {
       if (!holding) {
-        const double spin = imu.get_gyro_rate().z;
+        const double spin = chassis.imu.get_gyro_rate().z;
         if (std::isfinite(spin) && std::fabs(spin) < SETTLED_DPS) {
           hold_heading = now;
           holding = true;
@@ -246,7 +261,10 @@ void opcontrol() {
       holding = false;
     }
 
-    chassis.arcade(leftY, turn);
+    // arcade() by hand rather than opcontrol_arcade_standard(), because the
+    // heading hold above has already decided what the turn should be and the
+    // built-in helper reads the sticks itself.
+    chassis.drive_set(leftY + turn, leftY - turn);
 
     // LEFT + A starts the selected routine, for testing on a practice field.
     // Both buttons, because one of them is a stray press and two is a
