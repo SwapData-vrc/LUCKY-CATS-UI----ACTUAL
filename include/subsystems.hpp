@@ -61,15 +61,8 @@ extern const double CLAW_POS[3];
 extern volatile bool chassis_ready;
 
 // re-home: drive this far past pos 0, settle, then call that spot pos 0
-const int CLAW_HOME_PUSH = 60;       // how hard we lean on the stop
-
-// What the encoder should read with the claw pushed against its stop. Boot
-// tares at wherever gravity leaves it, which is a bit above the stop, so the
-// two are not the same spot. Measured 30 off. Flip the sign if a re-home
-// sends the positions the wrong way.
-const double CLAW_STOP_READS = 30;
-const uint32_t CLAW_HOME_MIN_MS = 250;   // spin up before we trust the stall
-const uint32_t CLAW_HOME_GIVEUP_MS = 2000;
+const double CLAW_HOME_PAST = 200;
+const uint32_t CLAW_HOME_GIVEUP_MS = 1800;
 const uint32_t CLAW_HOME_SETTLE_MS = 20;
 
 // Drive the claw down past pos 0, then call that the new zero. Returns
@@ -85,7 +78,3 @@ void claw_update();
 
 // The position spinclaw() was last asked for.
 int claw_at();
-
-// Encoder reading at the stop on the last re-home, before zeroing. Shown on
-// the brain as S<n> -- that number is what CLAW_STOP_READS should be.
-double claw_home_raw();

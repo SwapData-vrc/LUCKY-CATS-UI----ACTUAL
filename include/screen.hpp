@@ -34,9 +34,6 @@ void clear_running();
 // page on; past the last page it hides itself.
 void show_code_page();
 
-// Drop a stale "route is running" flag. Call when opcontrol takes over.
-void clear_running();
-
 // The current selection, for the terminal.
 const char* selected_name();
 
