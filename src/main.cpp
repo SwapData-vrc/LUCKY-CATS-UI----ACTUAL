@@ -1,5 +1,6 @@
 #include "main.h"
 #include "mvlib/api.hpp"
+#include "mvlib/Optional/lemlib.hpp"
 #include "mvlib/Optional/ezTemplate.hpp"
 #include "record.hpp"
 #include "screen.hpp"
@@ -58,6 +59,7 @@ void initialize() {
   // few ms, so the screen still comes up well before initialize() returns.
   auto &mv = mvlib::Logger::getInstance();
   mvlib::setOdom(&chassis);
+  mv.setRobot({&left_motors, &right_motors}, true);
   mv.setRobot({&telemetry_left, &telemetry_right}, true);
 
   mv.watch("Battery", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 1000,
@@ -65,6 +67,8 @@ void initialize() {
   mv.watch("Drive Temp", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 1000,
            [] {
              double hot = 0;
+             for (auto t : left_motors.get_temperature_all()) hot = std::fmax(hot, t);
+             for (auto t : right_motors.get_temperature_all()) hot = std::fmax(hot, t);
              for (auto &m : chassis.left_motors) hot = std::fmax(hot, m.get_temperature());
              for (auto &m : chassis.right_motors) hot = std::fmax(hot, m.get_temperature());
              return hot;
@@ -75,6 +79,8 @@ void initialize() {
            [] { return claw_at(); });
   mv.watch("Claw Angle", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 100,
            [] { return claw.get_position() / 100.0; });
+  mv.watch("Claw Stop Read", mvlib::LogLevel::INFO, mvlib::WatchMode::onChange, 250,
+           [] { return claw_home_raw(); });
   mv.watch("Intake", mvlib::LogLevel::INFO, mvlib::WatchMode::onChange, 50,
            [] { return intake.get_target_velocity(); });
   mv.watch("Horiz Tracker", mvlib::LogLevel::INFO, mvlib::WatchMode::onInterval, 250,
@@ -148,7 +154,13 @@ void disabled() {
 void competition_initialize() {}
 
 void autonomous() {
-  while (!chassis_ready) pros::delay(10);
+  // dont sit here forever waiting on the imu. if calibration is stuck, a route
+  // running on drive encoders alone still beats not moving at all.
+  uint32_t t0 = pros::millis();
+  while (!chassis_ready && pros::millis() - t0 < 3000) pros::delay(10);
+  if (!chassis_ready)
+    mvlib::Logger::getInstance().warn("auton: imu not ready after 3 s, going anyway\n");
+
   screen::run_selected();
 }
 
@@ -162,6 +174,10 @@ void opcontrol() {
 
   // A route killed mid-motion leaves the screen believing it is still running,
   // and opcontrol would then skip the whole manual block below forever.
+  screen::clear_running();
+
+  // Same reason: a route cut off by the field never clears its running flag,
+  // and the guard below would skip driving and every macro until a restart.
   screen::clear_running();
 
   // Coast is what the drivers want under the sticks. Routes want brake, and
