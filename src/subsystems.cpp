@@ -1,7 +1,7 @@
 #include "subsystems.hpp" // IWYU pragma: keep
 
-pros::MotorGroup left_motors({-7, -5}, pros::MotorGearset::blue);
-pros::MotorGroup right_motors({4, 6}, pros::MotorGearset::blue);
+pros::MotorGroup left_motors({-14, 15, -16}, pros::MotorGearset::blue);
+pros::MotorGroup right_motors({11, -12, 13}, pros::MotorGearset::blue);
 
 lemlib::Drivetrain drivetrain(&left_motors, &right_motors,
                               11.5,                         // track width, inches
@@ -58,10 +58,12 @@ lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
 lemlib::Chassis chassis(drivetrain, lateral_controller, angular_controller,
                         sensors);
 
-pros::MotorGroup lift({-18, 2}, pros::MotorGearset::green);
+pros::MotorGroup lift({-20, 19}, pros::MotorGearset::green);
 pros::Motor claw_pivot(-3, pros::MotorGearset::green);
 pros::Motor claw_spin(1, pros::MotorGearset::green);
 pros::Motor intake(9, pros::MotorGearset::blue);
+// Gearset and direction are a guess -- check both on the robot.
+pros::Motor toggle_motor(18, pros::MotorGearset::green);
 
 volatile bool chassis_ready = false;
 

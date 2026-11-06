@@ -32,6 +32,7 @@ extern pros::MotorGroup lift;
 extern pros::Motor claw_pivot;
 extern pros::Motor claw_spin;
 extern pros::Motor intake;
+extern pros::Motor toggle_motor; // port 18, Y turns it on and off
 
 // ------------------------------------------------------- numbers worth changing
 const double LIFT_TICKS = 900;    // motor degrees, bottom to top

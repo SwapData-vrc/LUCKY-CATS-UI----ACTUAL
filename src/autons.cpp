@@ -47,134 +47,134 @@ namespace auton {
 void skills() {
 
 
-
+// SCORING PRELOAD //
   chassis.setPose(0, 0, 0);
   intake.move(127);
   claw_spin.move(-127);
+  chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false); // Moving Back And Forth
+  chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);                    // Into The Toggle
   chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
   chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
-  chassis.moveToPoint(0, -5, 400, {.forwards = false, .minSpeed = 70}, false);
-  chassis.moveToPoint(0, 4, 450, {.minSpeed = 100}, false);
-  spinclaw(1);
-  chassis.moveToPoint(-24, -9.8, 1300, {.forwards = false, .minSpeed = 100},
+  spinclaw(1);   // Activate The Claw To Get Ready To Place The Preload
+  chassis.moveToPoint(-25, -19, 1900, {.forwards = false, .maxSpeed = 90},  // Move To Alliance Goal
                       false);
-  claw_spin.move(127);
+  claw_spin.move(127); // Scoring The Preload
   pros::delay(650);
   
   spinclaw(2);
    pros::delay(100);
-  chassis.setPose(0,0,0);
+
+  // GATHERING 1ST PIN //
+  chassis.setPose(0,0,0); // Reset The Robot's Position
   pros::delay(50);
-  claw_spin.move(-127);
-  chassis.moveToPoint(0, 10.3, 650, {.maxSpeed = 100}, false);
-  chassis.turnToHeading(-139, 300, {.maxSpeed = 127}, false);
+  claw_spin.move(-127); 
+  chassis.moveToPoint(0, 10.3, 650, {.maxSpeed = 100}, false); // Backs Up
+  chassis.turnToHeading(-83, 650, {.maxSpeed = 110}, false); // Turn To Face The 1st Pin
   chassis.setPose(-5, 0, 0);
+
   // exits 1 in short so the turn does not spike at the point
-  chassis.moveToPoint(0, -15, 1410,
+  chassis.moveToPoint(-4, -16.5, 1510,
                       {.forwards = false, .maxSpeed = 30, .minSpeed = 10,
-                       .earlyExitRange = 1},
-                      true);
-  chassis.waitUntil(12);
+                       .earlyExitRange = 1}, 
+                      true);    // Gathers Pin
+  chassis.waitUntil(10.75);
   spinclaw(0);
   pros::delay(700);
-  spinclaw(1);
+  spinclaw(1); 
 
   chassis.waitUntilDone();
   chassis.setPose(0, 0, 0);
-  lift.move_absolute(750, 127);
+  lift.move_absolute(1000, 127);  
 pros::delay(150);
-  chassis.turnToHeading(127, 500, {.maxSpeed = 127}, false);
+  chassis.turnToHeading(133, 500, {.maxSpeed = 127}, false); // Turns Towards The Pin
 
   chassis.setPose(0, 0, 0);
 
-  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .maxSpeed = 90}, false);
-  lift.move_absolute(300, 127);
+// SCORING THE 1ST PIN //
+  chassis.moveToPoint(-3.5, -27.25, 1325, {.forwards = false, .maxSpeed = 90}, false);
+  lift.move_absolute(300, 127); // Move Then Prepare Lift On The Way To The Goal
 
-  claw_spin.move(127);
+  claw_spin.move(127); // Score The 1st Pin
   pros::delay(200);
 
-lift.move_absolute(900, 127);
+lift.move_absolute(1100, 127);
 pros::delay(800);
+
+// GATHER THE 2ND PIN //
   chassis.setPose(0, 0, 0);
-  chassis.moveToPoint(0, 24, 600, { .minSpeed = 80}, false);
-  
-  chassis.turnToHeading(-39.3, 500, {.maxSpeed = 127}, false);
+  chassis.moveToPoint(0, 15, 600, { .minSpeed = 80}, false); // Moving Backwards Away From The Goal
+  chassis.turnToHeading(-37.5, 550, {.maxSpeed = 127}, false); // Turn Towards 2nd Pin
 chassis.setPose(0, 0, 0);
-  lift.move(-127);
-  pros::delay(400);
+  lift.move(-127); // Lower The Lift
+  pros::delay(500);
   lift.brake();
  
 
-spinclaw(2);
+spinclaw(2); // Prepare The Claw For The 2nd Pin
 
 
 claw_spin.move(-127);
-  chassis.moveToPoint(0, -35, 2380,
-                      {.forwards = false, .maxSpeed = 60, .minSpeed = 10,
+  chassis.moveToPoint(4, -33.5, 2350,
+                      {.forwards = false, .maxSpeed = 42, .minSpeed = 10,
                        .earlyExitRange = 1},
-                      true);
-  chassis.waitUntil(27.5);
-  spinclaw(0);
+                      true); // Gathering The 2nd Pin
+  chassis.waitUntil(24);
+  spinclaw(0); // Claw Is In Resting Position
   pros::delay(700);
-  spinclaw(1);
+  spinclaw(1); // Claw Is Parallel To The Field
 
+// SCORING THE 2ND PIN //
   chassis.waitUntilDone();
   chassis.setPose(0, 0, 0);
-   lift.move_absolute(1200, 127);
-  pros::delay(300);
-  chassis.turnToHeading(130, 600, {.maxSpeed = 127}, false);
+   lift.move_absolute(1800, 127); // Activate The Lift To Be This High Above The Goal
+  pros::delay(800);
+  chassis.turnToHeading(131, 675, {.maxSpeed = 127}, false); // Face The Goal
+ 
  
   chassis.setPose(0, 0, 0);
   
-  chassis.moveToPoint(0, -25, 1250, {.forwards = false, .minSpeed = 80}, false);
-  lift.move_absolute(700,127);
+  chassis.moveToPose(-30, -36, 80, 1750, {.forwards = false, .minSpeed = 80}, false);
+  lift.move_absolute(600,127); // Move Down To Score The Pin
+  
   claw_spin.move(127);
-  pros::delay(200);
-    lift.move_absolute(1200,127);
-
+  pros::delay(450);
+    lift.move_absolute(1600,127); // Lift Up To Move Out Of The Goal
 
 
    chassis.setPose(0, 0, 0);
-  intake.move(127);
   claw_spin.move(127);
     chassis.turnToHeading(32, 600, {.maxSpeed = 127}, false);
 
-
-
+  // 3RD PIN (MATCH LOAD) //
    chassis.setPose(0, 0, 0);
-  intake.move(127);
   claw_spin.move(-127);
 spinclaw(2);
   
-  chassis.moveToPoint(6, 25.5, 2272, {}, false);
+  intake.move(127);
+  chassis.moveToPoint(5, 26, 2550, {}, false);
   lift.move_absolute(0, 127);
     spinclaw(0);
-
-
-  chassis.turnToHeading(90, 600, {}, false);
-
-   chassis.moveToPoint(25, 25.5, 1972, {}, false);
-   chassis.waitUntil(14);
-   
+  chassis.turnToHeading(90, 650, {}, false); // Facing The Wall Near The Match Load
+  chassis.moveToPoint(10, 26, 800, {}, false);
     intake.move(127);
-  
-       chassis.moveToPoint(24, 25.5, 1572, {}, false);
-       pros::delay(500);
+    pros::delay(1500);
        
-  chassis.moveToPoint(6, 25.5, 1572, {.forwards = false}, false);
+  chassis.moveToPoint(0, 27.5, 1572, {.forwards = false}, false);
    spinclaw(1);
   lift.move_absolute(2600, 127);
   pros::delay(200);
-  chassis.turnToHeading(-6, 600, {}, false);
+  chassis.turnToHeading(-6, 600, {}, false); // Turns To The Goal
+
  
             chassis.moveToPoint(0, -3, 1772, {.forwards = false, .maxSpeed = 80}, false);
-             chassis.turnToHeading(0, 50, {}, false);
-             lift.move_absolute(1800, 127);
+             chassis.turnToHeading(0, 50, {}, false); // Moves To Goal
+             lift.move_absolute(1800, 127); // Score On Goal
              claw_spin.move(127);
              pros::delay(700);
              
+             
             
-               lift.move_absolute(2600, 127);
+               lift.move_absolute(2900, 127);
                claw_spin.move(-127);
                spinclaw(2);
 
@@ -185,8 +185,7 @@ spinclaw(2);
    
 
 
-
-               
+  /*             
   chassis.moveToPoint(6, 28.1, 1572, {}, false);
   lift.move_absolute(0, 127);
     spinclaw(0);

@@ -95,7 +95,7 @@ void initialize() {
           vertical_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
   mv.info("horizontal tracker port 19: %s\n",
           horizontal_encoder.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
-  mv.info("lift       ports 18,2:  %s\n",
+  mv.info("lift       ports 20,19: %s\n",
           lift.get_position() == PROS_ERR_F ? "NOT REPORTING" : "ok");
   mv.info("claw       sensor port 13: %s\n",
           claw.get_position() == PROS_ERR ? "NOT REPORTING" : "ok");
@@ -115,6 +115,7 @@ void initialize() {
   claw_pivot.set_brake_mode(pros::MotorBrake::hold);
   intake.set_brake_mode(pros::MotorBrake::coast);
   claw_spin.set_brake_mode(pros::MotorBrake::coast);
+  toggle_motor.set_brake_mode(pros::MotorBrake::coast);
 
   // Its own task so a slow or unplugged IMU cannot keep the driver waiting.
   // arcade() is open loop and does not use odometry, so driving while this
@@ -174,6 +175,9 @@ void opcontrol() {
   bool route_owns_drive = false;
 
   lift_was_up = lift.get_position() > LIFT_CLAW_DEG;
+
+  // Y flips this. On, the toggle motor spins; off, it stops. Starts off.
+  bool toggle_on = false;
 
   while (true) {
     // A route started from this screen owns every motor for as long as it
@@ -272,6 +276,16 @@ void opcontrol() {
       screen::show_code_page();
       master.rumble("-");
     }
+
+    // ---- toggle ----
+    // Plain Y turns the toggle motor on or off. Not while RIGHT is held, so
+    // RIGHT+Y above still only pages the recorder code. Nothing else drives
+    // port 18, so this is the only thing commanding it.
+    if (!rec_mod && master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y))
+      toggle_on = !toggle_on;
+
+    if (toggle_on) toggle_motor.move(127);
+    else toggle_motor.brake();
 
     // UP drives the claw all the way down and calls that zero again
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP))

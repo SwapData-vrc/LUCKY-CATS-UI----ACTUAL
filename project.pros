@@ -333,9 +333,9 @@
       }
     },
     "upload_options": {
-      "description": "Lucky Cats 20850C -- V5RC Override 2026-27",
-      "icon": "pros",
-      "slot": 1
+      "description": "J-Lucky Cats 20850C",
+      "icon": "pizza",
+      "slot": 3
     },
     "use_early_access": false
   }
